@@ -5,7 +5,9 @@
 			"serviceAccount": "emulator-account"
 		}
 	},
-	"contracts": {},
+	"contracts": {
+		"sFlow": "./sFlow.cdc"
+	},
 	"networks": {
 		"emulator": "127.0.0.1:3569",
 		"mainnet": "access.mainnet.nodes.onflow.org:9000",
@@ -21,5 +23,9 @@
 			"key": "cfc2364f4a1fc05e3e3cbde4321f7905e3f40c4aaba06a795ef572977ac16113"
 		}
 	},
-	"deployments": {}
+	"deployments": {
+		"testnet": {
+			"testnet-account": ["sFlow"]
+		}
+	}
 }

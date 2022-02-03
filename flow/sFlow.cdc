@@ -1,9 +1,9 @@
 import FungibleToken from 0x9a0766d93b6608b7
 import FlowToken from 0x7e60df042a9c0868
 
-pub contract STFlowToken: FungibleToken {
+pub contract sFlow: FungibleToken {
 
-    /// Total supply of STFlowTokens in existence
+    /// Total supply of sFlows in existence
     pub var totalSupply: UFix64
 
     /// TokensInitialized
@@ -54,20 +54,20 @@ pub contract STFlowToken: FungibleToken {
     /// new tokens.
     ///
 
-    pub resource interface Balance {
+    pub resource interface GetBalance {
 
         /// The total balance of a vault
-        pub fun balance() : UFix64
+        pub fun getBalance() : UFix64
     }
 
-    pub resource Vault: FungibleToken.Provider, FungibleToken.Receiver, Balance {
+    pub resource Vault: FungibleToken.Provider, FungibleToken.Receiver, FungibleToken.Balance, GetBalance {
 
         /// The total balance of this vault
         pub var balance: UFix64
         pub var stakedTime: UFix64
 
-        pub fun balance() : UFix64 {
-            accumInterest();
+        pub fun getBalance() : UFix64 {
+            self.accumInterest();
             return self.balance
         }
 
@@ -77,52 +77,36 @@ pub contract STFlowToken: FungibleToken {
             self.stakedTime = getCurrentBlock().timestamp
         }
 
-        fun accumInterest() {
+        access(self) fun accumInterest() {
             let nowTime = getCurrentBlock().timestamp
-            self.balance = self.balance * (nowTime - self.stakedTime) * 1001 / 1000000
+            self.balance = self.balance * (nowTime - self.stakedTime) * 1.01 / 1000.0
             self.stakedTime = nowTime
         }
 
         /// stake
-        pub fun stake(amount: UFix64) {
-            // Get a reference to the signer's stored vault
-            let vaultRef = self.account.borrow<&FlowToken.Vault>(from: /storage/flowTokenVault)
-		    	?? panic("Could not borrow reference to the owner's Vault!")
+        pub fun stake(deposit: @FungibleToken.Vault) {
+            self.accumInterest()
+            self.balance = self.balance + deposit.balance
 
-            // Withdraw tokens from the signer's stored vault
-            let sentVault <- vaultRef.withdraw(amount: amount)
-
-            let receiverRef =  STFlowToken.account
+            let receiverRef =  sFlow.account
                 .getCapability(/public/flowTokenReceiver)
                 .borrow<&{FungibleToken.Receiver}>()
                 ?? panic("Could not borrow receiver reference to the recipient's Vault")
 
             // Deposit the withdrawn tokens in the recipient's receiver
-            receiverRef.deposit(from: <-sentVault)
-
-            accumInterest()
-            self.balance = self.balance + amount
+            receiverRef.deposit(from: <-deposit)
         }
 
         /// unStake
-        pub fun unStake(amount: UFix64) {
+        pub fun unStake(amount: UFix64) : @FungibleToken.Vault{
+            self.accumInterest()
+            self.balance = self.balance - amount
+
             // Get a reference to the signer's stored vault
-            let vaultRef = STFlowToken.account.borrow<&FlowToken.Vault>(from: /storage/flowTokenVault)
+            let vaultRef = sFlow.account.borrow<&FlowToken.Vault>(from: /storage/flowTokenVault)
 		    	?? panic("Could not borrow reference to the owner's Vault!")
 
-            // Withdraw tokens from the signer's stored vault
-            let sentVault <- vaultRef.withdraw(amount: amount)
-
-            let receiverRef =  self.account
-                .getCapability(/public/flowTokenReceiver)
-                .borrow<&{FungibleToken.Receiver}>()
-                ?? panic("Could not borrow receiver reference to the recipient's Vault")
-
-            // Deposit the withdrawn tokens in the recipient's receiver
-            receiverRef.deposit(from: <-sentVault)
-
-            accumInterest()
-            self.balance = self.balance - amount
+            return <- vaultRef.withdraw(amount: amount)
         }
 
 
@@ -152,7 +136,7 @@ pub contract STFlowToken: FungibleToken {
         /// been consumed and therefore can be destroyed.
         ///
         pub fun deposit(from: @FungibleToken.Vault) {
-            let vault <- from as! @STFlowToken.Vault
+            let vault <- from as! @sFlow.Vault
             self.balance = self.balance + vault.balance
             emit TokensDeposited(amount: vault.balance, to: self.owner?.address)
             vault.balance = 0.0
@@ -160,7 +144,7 @@ pub contract STFlowToken: FungibleToken {
         }
 
         destroy() {
-            STFlowToken.totalSupply = STFlowToken.totalSupply - self.balance
+            sFlow.totalSupply = sFlow.totalSupply - self.balance
         }
     }
 
@@ -210,12 +194,12 @@ pub contract STFlowToken: FungibleToken {
         /// Function that mints new tokens, adds them to the total supply,
         /// and returns them to the calling context.
         ///
-        pub fun mintTokens(amount: UFix64): @STFlowToken.Vault {
+        pub fun mintTokens(amount: UFix64): @sFlow.Vault {
             pre {
                 amount > 0.0: "Amount minted must be greater than zero"
                 amount <= self.allowedAmount: "Amount minted must be less than the allowed amount"
             }
-            STFlowToken.totalSupply = STFlowToken.totalSupply + amount
+            sFlow.totalSupply = sFlow.totalSupply + amount
             self.allowedAmount = self.allowedAmount - amount
             emit TokensMinted(amount: amount)
             return <-create Vault(balance: amount)
@@ -240,7 +224,7 @@ pub contract STFlowToken: FungibleToken {
         /// total supply in the Vault destructor.
         ///
         pub fun burnTokens(from: @FungibleToken.Vault) {
-            let vault <- from as! @STFlowToken.Vault
+            let vault <- from as! @sFlow.Vault
             let amount = vault.balance
             destroy vault
             emit TokensBurned(amount: amount)
@@ -253,26 +237,26 @@ pub contract STFlowToken: FungibleToken {
         // Create the Vault with the total supply of tokens and save it in storage
         //
         let vault <- create Vault(balance: self.totalSupply)
-        self.account.save(<-vault, to: /storage/STFlowTokenVault)
+        self.account.save(<-vault, to: /storage/sFlowVault)
 
         // Create a public capability to the stored Vault that only exposes
         // the `deposit` method through the `Receiver` interface
         //
         self.account.link<&{FungibleToken.Receiver}>(
-            /public/STFlowTokenReceiver,
-            target: /storage/STFlowTokenVault
+            /public/sFlowReceiver,
+            target: /storage/sFlowVault
         )
 
         // Create a public capability to the stored Vault that only exposes
         // the `balance` field through the `Balance` interface
         //
-        self.account.link<&STFlowToken.Vault{FungibleToken.Balance}>(
-            /public/STFlowTokenBalance,
-            target: /storage/STFlowTokenVault
+        self.account.link<&sFlow.Vault{sFlow.GetBalance}>(
+            /public/sFlowBalance,
+            target: /storage/sFlowVault
         )
 
         let admin <- create Administrator()
-        self.account.save(<-admin, to: /storage/STFlowTokenAdmin)
+        self.account.save(<-admin, to: /storage/sFlowAdmin)
 
         // Emit an event that shows that the contract was initialized
         //
