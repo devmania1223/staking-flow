@@ -223,15 +223,16 @@ const manageCollection = async() => {
 
     const transactionId = await fcl.mutate({
         cadence: `
-            import sFlow16 from 0xsFlow16
+            import sFlowToken from 0xsFlowToken
 
             transaction() {
+                let account: AuthAccount
                 prepare(account: AuthAccount) {
-      
+                    self.account = account
                 }
       
                 execute {
-                    sFlow16.manageCollection()
+                    account.manageCollection()
                 }
             }
         `,
