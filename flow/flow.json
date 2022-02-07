@@ -19,8 +19,8 @@
 			"key": "d2f9a7a582dc26ff0d05c79946828a31ecd99211674e32d8c6e48ec32ae5c7d8"
 		},
 		"testnet-account": {
-			"address": "5d06650e78589548",
-			"key": "cfc2364f4a1fc05e3e3cbde4321f7905e3f40c4aaba06a795ef572977ac16113"
+			"address": "0x44886dbbf20e893c",
+			"key": "784bf71b737be0b49652030fcaa78369a60df6fbed57d5e0fbef57aa631e3ec8"
 		}
 	},
 	"deployments": {
