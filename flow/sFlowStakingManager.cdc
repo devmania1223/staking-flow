@@ -6,7 +6,7 @@ import FlowIDTableStaking from 0x9eca2b38b18b5dfe
 import FlowServiceAccount from 0x8c5303eaa26202d6
 import LockedTokens from 0x95e019a17d0e23d7
 
-pub contract sFlowStakingManager7 {
+pub contract sFlowStakingManager9 {
 
     /// Unstaking Request List
     access(contract) var unstakeList: [{String: AnyStruct}]
@@ -82,7 +82,7 @@ pub contract sFlowStakingManager7 {
             let amount : UFix64 = tempAmount as! UFix64
 
             let requiredFlow = amount * self.getCurrentPrice();
-            if (self.getCurrentPoolAmount() > requiredFlow + 10.1)
+            if (self.getCurrentPoolAmount() > requiredFlow + 10.0)
             {
                 let providerRef =  self.account
                     .borrow<&FlowToken.Vault>(from: /storage/flowTokenVault)
@@ -117,6 +117,8 @@ pub contract sFlowStakingManager7 {
             index = index + 1
         }
 
+        var bStakeNew : Bool = true
+
         if( requiredStakedAmount > 0.0 ){
             requiredStakedAmount = requiredStakedAmount + 10.1 - self.getCurrentPoolAmount()
             let delegatingInfo = self.getDelegatorInfo()
@@ -132,6 +134,7 @@ pub contract sFlowStakingManager7 {
                 }
                 stakingCollectionRef.withdrawUnstakedTokens(nodeID: "4d617820576f6c74657200ff6e729e24d35ee1aa0a76bc05746f8c99879e8eaf", delegatorID: 1, amount: amount)
                 requiredStakedAmount = requiredStakedAmount - amount
+                bStakeNew = false
             }
         }
 
@@ -149,6 +152,7 @@ pub contract sFlowStakingManager7 {
                 }
                 stakingCollectionRef.withdrawRewardedTokens(nodeID: "4d617820576f6c74657200ff6e729e24d35ee1aa0a76bc05746f8c99879e8eaf", delegatorID: 1, amount: amount)
                 requiredStakedAmount = requiredStakedAmount - amount
+                bStakeNew = false
             }
         }
 
@@ -159,9 +163,10 @@ pub contract sFlowStakingManager7 {
             let stakingCollectionRef: &FlowStakingCollection.StakingCollection = self.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
                 ?? panic("Could not borrow ref to StakingCollection")
             stakingCollectionRef.requestUnstaking(nodeID: "4d617820576f6c74657200ff6e729e24d35ee1aa0a76bc05746f8c99879e8eaf", delegatorID: 1, amount: amount)
+            bStakeNew = false
         }
 
-        if( requiredStakedAmount < 0.1){
+        if( requiredStakedAmount < 0.1 && bStakeNew ){
             let delegatingInfo = self.getDelegatorInfo()
             let stakingCollectionRef: &FlowStakingCollection.StakingCollection = self.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
                 ?? panic("Could not borrow ref to StakingCollection")
