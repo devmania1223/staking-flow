@@ -1,4 +1,4 @@
-import sFlowToken from 0x44886dbbf20e893c
+import sFlowToken2 from 0x44886dbbf20e893c
 import FungibleToken from 0x9a0766d93b6608b7
 import FlowToken from 0x7e60df042a9c0868
 import FlowStakingCollection from 0x95e019a17d0e23d7
@@ -6,12 +6,12 @@ import FlowIDTableStaking from 0x9eca2b38b18b5dfe
 import FlowServiceAccount from 0x8c5303eaa26202d6
 import LockedTokens from 0x95e019a17d0e23d7
 
-pub contract sFlowStakingManager: FungibleToken {
+pub contract sFlowStakingManager7 {
 
     /// Unstaking Request List
-    access(contract) var unstakeList: [{String: Address, String: UFix64}]
+    access(contract) var unstakeList: [{String: AnyStruct}]
 
-    pub fun stake(from: @FungibleToken.Vault) : @sFlowToken.Vault {
+    pub fun stake(from: @FungibleToken.Vault) : @sFlowToken2.Vault {
         let vault <- from as! @FlowToken.Vault
         let currentPrice: UFix64 = self.getCurrentPrice()
         let amount: UFix64 = vault.balance / currentPrice
@@ -23,17 +23,17 @@ pub contract sFlowStakingManager: FungibleToken {
         managerFlowVault.deposit(from: <-vault)
 
         let managerMinterVault =  self.account
-            .borrow<&FlowToken.Vault>(from: /storage/sFlowTokenMinter)
+            .borrow<&sFlowToken2.Minter>(from: /storage/sFlowToken2Minter)
             ?? panic("Could not borrow Manager's Minter Vault")
         return <- managerMinterVault.mintTokens(amount: amount);
     }
 
-    pub fun unStake(accountAddress: Address, from: @sFlowToken.Vault) {
-        self.unstakeList.append({"address": accountAddress, "amount": deposit.balance});
-        let managersFlowTokenVault =  self.account
-            .borrow<&FlowToken.Vault>(from: /storage/sFlowTokenVault)
+    pub fun unstake(accountAddress: Address, from: @FungibleToken.Vault) {
+        self.unstakeList.append({"address": accountAddress, "amount": from.balance});
+        let managersFlowToken2Vault =  self.account
+            .borrow<&sFlowToken2.Vault>(from: /storage/sFlowToken2Vault)
             ?? panic("Could not borrow Manager's Minter Vault")
-        managersFlowTokenVault.deposit(from: <-from)
+        managersFlowToken2Vault.deposit(from: <-from)
     }
 
     init() {
@@ -68,16 +68,18 @@ pub contract sFlowStakingManager: FungibleToken {
             delegatingInfo[0].tokensRewarded +
             delegatingInfo[0].tokensUnstaked;
 
-        return (amountInPool + amountInStaking)/self.totalSupply
+        return (amountInPool + amountInStaking)/sFlowToken2.totalSupply
     }
 
-    access(account) fun manageCollection(){
+    pub fun manageCollection(){
         var requiredStakedAmount:UFix64 = 0.0
         var index = 0
         for unstakeTicket in self.unstakeList {
-            let accountAddress = unstakeTicket["address"]
+            let tempAddress : AnyStruct = unstakeTicket["address"]!
+            let accountAddress : Address = tempAddress as! Address
             let accountStaker = getAccount(accountAddress)
-            let amount = unstakeTicket["amount"]
+            let tempAmount : AnyStruct = unstakeTicket["amount"]!
+            let amount : UFix64 = tempAmount as! UFix64
 
             let requiredFlow = amount * self.getCurrentPrice();
             if (self.getCurrentPoolAmount() > requiredFlow + 10.1)
@@ -95,18 +97,18 @@ pub contract sFlowStakingManager: FungibleToken {
                     ?? panic("Could not borrow receiver reference to the recipient's Vault")
                 receiverRef.deposit(from: <-sentVault)
 
-                let managersFlowTokenVault =  self.account
-                    .borrow<&sFlowToken.Vault>(from: /storage/sFlowTokenVault)
+                let managersFlowToken2Vault =  self.account
+                    .borrow<&sFlowToken2.Vault>(from: /storage/sFlowToken2Vault)
                     ?? panic("Could not borrow provider reference to the provider's Vault")
 
                 // Deposit the withdrawn tokens in the provider's receiver
-                let burningVault: @FungibleToken.Vault <- managersFlowTokenVault.withdraw(amount: requiredFlow)
+                let burningVault: @FungibleToken.Vault <- managersFlowToken2Vault.withdraw(amount: requiredFlow)
 
-                let managersFlowTokenBurnerVault =  self.account
-                    .borrow<&sFlowToken.Vault>(from: /storage/sFlowTokenBurner)
+                let managersFlowToken2BurnerVault =  self.account
+                    .borrow<&sFlowToken2.Burner>(from: /storage/sFlowToken2Burner)
                     ?? panic("Could not borrow provider reference to the provider's Vault")
 
-                managersFlowTokenBurnerVault.burnTokens(from: <- burningVault)
+                managersFlowToken2BurnerVault.burnTokens(from: <- burningVault)
 
                 self.unstakeList.remove(at: index)
                 continue
@@ -119,7 +121,7 @@ pub contract sFlowStakingManager: FungibleToken {
             requiredStakedAmount = requiredStakedAmount + 10.1 - self.getCurrentPoolAmount()
             let delegatingInfo = self.getDelegatorInfo()
             if( delegatingInfo[0].tokensUnstaked > 0.0 ) {
-                let stakingCollectionRef: &FlowStakingCollection.StakingCollection = sFlowToken.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
+                let stakingCollectionRef: &FlowStakingCollection.StakingCollection = self.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
                     ?? panic("Could not borrow ref to StakingCollection")
                 var amount: UFix64 = 0.0
                 if(delegatingInfo[0].tokensUnstaked >= requiredStakedAmount)

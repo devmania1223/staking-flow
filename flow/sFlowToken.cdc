@@ -1,6 +1,6 @@
 import FungibleToken from 0x9a0766d93b6608b7
 
-pub contract sFlowToken: FungibleToken {
+pub contract sFlowToken2: FungibleToken {
 
     /// Total supply of sFlowTokens in existence
     pub var totalSupply: UFix64
@@ -89,7 +89,7 @@ pub contract sFlowToken: FungibleToken {
         /// been consumed and therefore can be destroyed.
         ///
         pub fun deposit(from: @FungibleToken.Vault) {
-            let vault <- from as! @sFlowToken.Vault
+            let vault <- from as! @sFlowToken2.Vault
             self.balance = self.balance + vault.balance
             emit TokensDeposited(amount: vault.balance, to: self.owner?.address)
             vault.balance = 0.0
@@ -97,7 +97,7 @@ pub contract sFlowToken: FungibleToken {
         }
 
         destroy() {
-            sFlowToken.totalSupply = sFlowToken.totalSupply - self.balance
+            sFlowToken2.totalSupply = sFlowToken2.totalSupply - self.balance
         }
     }
 
@@ -147,12 +147,12 @@ pub contract sFlowToken: FungibleToken {
         /// Function that mints new tokens, adds them to the total supply,
         /// and returns them to the calling context.
         ///
-        pub fun mintTokens(amount: UFix64): @sFlowToken.Vault {
+        pub fun mintTokens(amount: UFix64): @sFlowToken2.Vault {
             pre {
                 amount > 0.0: "Amount minted must be greater than zero"
                 amount <= self.allowedAmount: "Amount minted must be less than the allowed amount"
             }
-            sFlowToken.totalSupply = sFlowToken.totalSupply + amount
+            sFlowToken2.totalSupply = sFlowToken2.totalSupply + amount
             self.allowedAmount = self.allowedAmount - amount
             emit TokensMinted(amount: amount)
             return <-create Vault(balance: amount)
@@ -177,7 +177,7 @@ pub contract sFlowToken: FungibleToken {
         /// total supply in the Vault destructor.
         ///
         pub fun burnTokens(from: @FungibleToken.Vault) {
-            let vault <- from as! @sFlowToken.Vault
+            let vault <- from as! @sFlowToken2.Vault
             let amount = vault.balance
             destroy vault
             emit TokensBurned(amount: amount)
@@ -190,37 +190,33 @@ pub contract sFlowToken: FungibleToken {
         // Create the Vault with the total supply of tokens and save it in storage
         //
         let vault <- create Vault(balance: self.totalSupply)
-        self.account.save(<-vault, to: /storage/sFlowTokenVault)
+        self.account.save(<-vault, to: /storage/sFlowToken2Vault)
 
         // Create a public capability to the stored Vault that only exposes
         // the `deposit` method through the `Receiver` interface
         //
         self.account.link<&{FungibleToken.Receiver}>(
-            /public/sFlowTokenReceiver,
-            target: /storage/sFlowTokenVault
+            /public/sFlowToken2Receiver,
+            target: /storage/sFlowToken2Vault
         )
 
         // Create a public capability to the stored Vault that only exposes
         // the `balance` field through the `Balance` interface
         //
-        self.account.link<&sFlowToken.Vault{FungibleToken.Balance}>(
-            /public/sFlowTokenBalance,
-            target: /storage/sFlowTokenVault
-        )
-
-        self.account.link<&sFlowToken.Vault{sFlowToken.Staker}>(
-            /public/sFlowTokenStaker,
-            target: /storage/sFlowTokenVault
+        self.account.link<&sFlowToken2.Vault{FungibleToken.Balance}>(
+            /public/sFlowToken2Balance,
+            target: /storage/sFlowToken2Vault
         )
 
         let admin <- create Administrator()
-        self.account.save(<-admin, to: /storage/sFlowTokenAdmin)
 
-        let minter <- admin.createNewMinter(UFix64.max - 1000.0)
-        self.account.save(<-minter, to: /storage/sFlowTokenMinter)
+        let minter <- admin.createNewMinter(allowedAmount: (UFix64.max - 1000.0))
+        self.account.save(<-minter, to: /storage/sFlowToken2Minter)
 
         let burner <- admin.createNewBurner()
-        self.account.save(<-burner, to: /storage/sFlowTokenBurner)
+        self.account.save(<-burner, to: /storage/sFlowToken2Burner)
+
+        self.account.save(<-admin, to: /storage/sFlowToken2Admin)
 
         // Emit an event that shows that the contract was initialized
         //

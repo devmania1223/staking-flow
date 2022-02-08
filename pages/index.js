@@ -20,37 +20,25 @@ export default function Home() {
     console.log("entered");
     const transactionId = await fcl.mutate({
       cadence: `
-        import sFlowToken from 0xsFlowToken
+        import sFlowToken2 from 0xsFlowToken2
         import FungibleToken from 0xFungibleToken
 
         transaction {
           prepare(account: AuthAccount) {
             // Only initialize the account if it hasn't already been initialized
             if account
-            .getCapability(/public/sFlowTokenUnStaker)
-            .borrow<&{sFlowToken.UnStaker}>() == nil {
+            .getCapability(/public/sFlowToken2Receiver)
+            .borrow<&{FungibleToken.Receiver}>() == nil {
               // Store the vault in the account storage
-              account.save<@sFlowToken.Vault>(<-sFlowToken.createEmptyVault(), to: /storage/sFlowTokenVault)
+              account.save<@sFlowToken2.Vault>(<-sFlowToken2.createEmptyVault(), to: /storage/sFlowToken2Vault)
           
               log("Empty Vault stored")
           
               // Create a public Receiver capability to the Vault
-              let ReceiverRef1 = account.link<&sFlowToken.Vault{FungibleToken.Receiver}>(/public/sFlowTokenReceiver, target: /storage/sFlowTokenVault)
+              let ReceiverRef1 = account.link<&sFlowToken2.Vault{FungibleToken.Receiver}>(/public/sFlowToken2Receiver, target: /storage/sFlowToken2Vault)
 
               // Create a public Balance capability to the Vault
-              let BalanceRef = account.link<&sFlowToken.Vault{FungibleToken.Balance}>(/public/sFlowTokenBalance, target: /storage/sFlowTokenVault)
-
-              // Create a public Staker capability to the Vault
-              let StakerRef = account.link<&sFlowToken.Vault{sFlowToken.Staker}>(/public/sFlowTokenStaker, target: /storage/sFlowTokenVault)
-
-              // Create a public UnStaker capability to the Vault
-              let UnStakerRef = account.link<&sFlowToken.Vault{sFlowToken.UnStaker}>(/public/sFlowTokenUnStaker, target: /storage/sFlowTokenVault)
-
-              // Create a public RequestUnstake capability to the Vault
-              let RequestUnstakeRef = account.link<&sFlowToken.Vault{sFlowToken.RequestUnstake}>(/public/sFlowTokenRequestUnstake, target: /storage/sFlowTokenVault)
-
-              // Create a public Unstaked capability to the Vault
-              let UnstakedRef = account.link<&sFlowToken.Vault{sFlowToken.Unstaked}>(/public/sFlowTokenUnstaked, target: /storage/sFlowTokenVault)
+              let BalanceRef = account.link<&sFlowToken2.Vault{FungibleToken.Balance}>(/public/sFlowToken2Balance, target: /storage/sFlowToken2Vault)
 
               log("References created")            }
           }
@@ -68,7 +56,8 @@ export default function Home() {
   const stake = async () => {
     const transactionId = await fcl.mutate({
       cadence: `
-        import sFlowToken from 0xsFlowToken
+        import sFlowToken2 from 0xsFlowToken2
+        import sFlowStakingManager7 from 0xsFlowStakingManager7
         import FungibleToken from 0xFungibleToken
         import FlowToken from 0xFlowToken
 
@@ -90,15 +79,12 @@ export default function Home() {
           }
       
           execute {
-      
-              // Get a reference to the recipient's Staker
-              let stakerRef =  self.account
-                  .getCapability(/public/sFlowTokenStaker)
-                  .borrow<&{sFlowToken.Staker}>()
-            ?? panic("Could not borrow staker reference to the recipient's Vault")
-      
               // Deposit the withdrawn tokens in the recipient's receiver
-              stakerRef.stake(deposit: <-self.sentVault)
+              let sFlowVault <- sFlowStakingManager7.stake(from: <-self.sentVault)
+
+              let vaultRef = self.account.borrow<&sFlowToken2.Vault>(from: /storage/sFlowToken2Vault)
+              ?? panic("Could not borrow reference to the owner's Vault!")
+              vaultRef.deposit(from: <- sFlowVault)
           }
         }`,
       args: (arg, t) => [arg(stakeAmount, t.UFix64)],
@@ -114,7 +100,8 @@ export default function Home() {
   const unstake = async () => {
     const transactionId = await fcl.mutate({
       cadence: `
-        import sFlowToken from 0xsFlowToken
+        import sFlowToken2 from 0xsFlowToken2
+        import sFlowStakingManager7 from 0xsFlowStakingManager7
         import FungibleToken from 0xFungibleToken
         import FlowToken from 0xFlowToken
 
@@ -126,14 +113,12 @@ export default function Home() {
           }
       
           execute {
-              // Get a reference to the recipient's unStaker
-              let stakerRef =  self.account
-                  .getCapability(/public/sFlowTokenUnStaker)
-                  .borrow<&{sFlowToken.UnStaker}>()
-              ?? panic("Could not borrow unstaker reference to the recipient's Vault")
-      
+              let vaultRef = self.account.borrow<&sFlowToken2.Vault>(from: /storage/sFlowToken2Vault)
+              ?? panic("Could not borrow reference to the owner's Vault!")
+              let sFlowVault <- vaultRef.withdraw(amount: amount)
+    
               // Deposit the withdrawn tokens in the recipient's receiver
-              stakerRef.unStake(accountAddress: self.account.address, amount: amount)
+              sFlowStakingManager7.unstake(accountAddress: self.account.address, from: <-sFlowVault)
           }
         }`,
       args: (arg, t) => [arg(stakeAmount, t.UFix64)],
@@ -149,7 +134,7 @@ export default function Home() {
   const accountInitialzed = async () => {
     var response = await fcl.query({
         cadence : `
-        import sFlowToken from 0xsFlowToken
+        import sFlowToken2 from 0xsFlowToken2
         import FungibleToken from 0xFungibleToken
 
         // This script reads the Vault balances of two accounts.
@@ -158,8 +143,8 @@ export default function Home() {
             let account = getAccount(accountAddress)
 
             let accountRef = account
-            .getCapability(/public/sFlowTokenUnStaker)
-            .borrow<&{sFlowToken.UnStaker}>()
+            .getCapability(/public/sFlowToken2Receiver)
+            .borrow<&{FungibleToken.Receiver}>()
 
             if accountRef == nil {
               return false
@@ -174,11 +159,11 @@ export default function Home() {
   const getCurrentPrice = async () => {
     var response = await fcl.query({
         cadence : `
-        import sFlowToken from 0xsFlowToken
+        import sFlowStakingManager7 from 0xsFlowStakingManager7
 
         // This script reads the Vault balances of two accounts.
         pub fun main() : UFix64 {
-            let price = sFlowToken.getCurrentPrice()
+            let price = sFlowStakingManager7.getCurrentPrice()
             return price
         }
         `
@@ -215,13 +200,13 @@ export default function Home() {
         // This script reads the balance field of an account's FlowToken Balance
 
         import FungibleToken from 0xFungibleToken
-        import sFlowToken from 0xsFlowToken
+        import sFlowToken2 from 0xsFlowToken2
         
         pub fun main(account: Address): UFix64 {
         
             let vaultRef = getAccount(account)
-                .getCapability(/public/sFlowTokenBalance)
-                .borrow<&sFlowToken.Vault{FungibleToken.Balance}>()
+                .getCapability(/public/sFlowToken2Balance)
+                .borrow<&sFlowToken2.Vault{FungibleToken.Balance}>()
                 ?? panic("Could not borrow Balance reference to the Vault")
         
             return vaultRef.balance
@@ -241,7 +226,7 @@ export default function Home() {
         setCurrentsFlowBalance(await getsFlowBalance())
       }
     }
-  }, 5000);
+  }, 10000);
 
   useEffect(() => {
     fcl.currentUser.subscribe(setUser)

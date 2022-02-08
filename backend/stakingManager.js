@@ -223,7 +223,7 @@ const manageCollection = async() => {
 
     const transactionId = await fcl.mutate({
         cadence: `
-            import sFlowToken from 0xsFlowToken
+            import sFlowStakingManager7 from 0xsFlowStakingManager7
 
             transaction() {
                 let account: AuthAccount
@@ -232,7 +232,7 @@ const manageCollection = async() => {
                 }
       
                 execute {
-                    account.manageCollection()
+                    sFlowStakingManager7.manageCollection()
                 }
             }
         `,
