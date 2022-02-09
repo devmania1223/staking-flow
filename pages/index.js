@@ -379,7 +379,7 @@ export default function Home() {
               spacing={2}
               justifyContent="center"
             >
-              <MUISwitch defaultChecked onChange={switchMode} />
+              <MUISwitch onChange={switchMode} />
             </Stack>
           </Container>
           <Container component="main" maxWidth="sm" sx={{ mb: 4 }}>
