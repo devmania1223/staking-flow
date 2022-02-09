@@ -102,7 +102,7 @@ pub contract sFlowStakingManager9 {
                     ?? panic("Could not borrow provider reference to the provider's Vault")
 
                 // Deposit the withdrawn tokens in the provider's receiver
-                let burningVault: @FungibleToken.Vault <- managersFlowToken2Vault.withdraw(amount: requiredFlow)
+                let burningVault: @FungibleToken.Vault <- managersFlowToken2Vault.withdraw(amount: amount)
 
                 let managersFlowToken2BurnerVault =  self.account
                     .borrow<&sFlowToken2.Burner>(from: /storage/sFlowToken2Burner)
