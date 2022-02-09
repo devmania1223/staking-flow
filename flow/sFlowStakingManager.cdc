@@ -158,7 +158,7 @@ pub contract sFlowStakingManager9 {
 
         if( requiredStakedAmount > 0.0 ){
             let delegatingInfo = self.getDelegatorInfo()
-            let amount: UFix64 = requiredStakedAmount - delegatingInfo[0].tokensUnstaking
+            let amount: UFix64 = requiredStakedAmount - delegatingInfo[0].tokensUnstaking - delegatingInfo[0].tokensRequestedToUnstake
 
             let stakingCollectionRef: &FlowStakingCollection.StakingCollection = self.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
                 ?? panic("Could not borrow ref to StakingCollection")
