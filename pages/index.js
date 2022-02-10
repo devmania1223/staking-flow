@@ -135,7 +135,7 @@ export default function Home() {
     const transactionId = await fcl.mutate({
       cadence: `
         import sFlowToken2 from 0xsFlowToken2
-        import sFlowStakingManager9 from 0xsFlowStakingManager9
+        import sFlowStakingManager13 from 0xsFlowStakingManager13
         import FungibleToken from 0xFungibleToken
         import FlowToken from 0xFlowToken
 
@@ -158,7 +158,7 @@ export default function Home() {
       
           execute {
               // Deposit the withdrawn tokens in the recipient's receiver
-              let sFlowVault <- sFlowStakingManager9.stake(from: <-self.sentVault)
+              let sFlowVault <- sFlowStakingManager13.stake(from: <-self.sentVault)
 
               let vaultRef = self.account.borrow<&sFlowToken2.Vault>(from: /storage/sFlowToken2Vault)
               ?? panic("Could not borrow reference to the owner's Vault!")
@@ -179,7 +179,7 @@ export default function Home() {
     const transactionId = await fcl.mutate({
       cadence: `
         import sFlowToken2 from 0xsFlowToken2
-        import sFlowStakingManager9 from 0xsFlowStakingManager9
+        import sFlowStakingManager13 from 0xsFlowStakingManager13
         import FungibleToken from 0xFungibleToken
         import FlowToken from 0xFlowToken
 
@@ -196,7 +196,7 @@ export default function Home() {
               let sFlowVault <- vaultRef.withdraw(amount: amount)
     
               // Deposit the withdrawn tokens in the recipient's receiver
-              sFlowStakingManager9.unstake(accountAddress: self.account.address, from: <-sFlowVault)
+              sFlowStakingManager13.unstake(accountAddress: self.account.address, from: <-sFlowVault)
           }
         }`,
       args: (arg, t) => [arg(stakeAmount, t.UFix64)],
@@ -237,11 +237,11 @@ export default function Home() {
   const getCurrentPrice = async () => {
     var response = await fcl.query({
         cadence : `
-        import sFlowStakingManager9 from 0xsFlowStakingManager9
+        import sFlowStakingManager13 from 0xsFlowStakingManager13
 
         // This script reads the Vault balances of two accounts.
         pub fun main() : UFix64 {
-            let price = sFlowStakingManager9.getCurrentPrice()
+            let price = sFlowStakingManager13.getCurrentPrice()
             return price
         }
         `

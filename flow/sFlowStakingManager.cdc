@@ -6,7 +6,7 @@ import FlowIDTableStaking from 0x9eca2b38b18b5dfe
 import FlowServiceAccount from 0x8c5303eaa26202d6
 import LockedTokens from 0x95e019a17d0e23d7
 
-pub contract sFlowStakingManager9 {
+pub contract sFlowStakingManager13 {
 
     /// Unstaking Request List
     access(contract) var unstakeList: [{String: AnyStruct}]
@@ -30,15 +30,17 @@ pub contract sFlowStakingManager9 {
             panic("No Delegating Information")
         }
         for info in delegatingInfo {
-            if (info.nodeID == self.nodeID && info.id == self.delegatorID)
+            if (info.nodeID == self.nodeID && info.id == self.delegatorID){
                 return info
+            }
         }
         panic("No Delegating Information")
     }
 
     pub fun getPrevDelegatorInfo() : FlowIDTableStaking.DelegatorInfo{
-        if(self.prevNodeID == "")
+        if(self.prevNodeID == "") {
             panic("No Prev Delegating Information")
+        }
 
         let delegatingInfo = FlowStakingCollection.getAllDelegatorInfo(address: self.account.address);
         if delegatingInfo.length == 0 {
@@ -46,7 +48,9 @@ pub contract sFlowStakingManager9 {
         }
         for info in delegatingInfo {
             if (info.nodeID == self.prevNodeID && info.id == self.prevDelegatorID)
+            {
                 return info
+            }
         }
         panic("No Prev Delegating Information")
     }
@@ -99,18 +103,23 @@ pub contract sFlowStakingManager9 {
         pub fun setNewDelegator(nodeID: String, delegatorID: UInt32)
     }
 
-    pub resource Instance : setManagerCapability {
+    pub resource interface InstanceInterface {
+        pub fun setNewDelegator(nodeID: String, delegatorID: UInt32)
+        pub fun manageCollection()
+    }
+
+    pub resource Instance : InstanceInterface, setManagerCapability {
         access(self) var managerCapability: Capability<&Manager>?
         
         init() {
-            self.addAccountCapability = nil
+            self.managerCapability = nil
         }
 
         pub fun setCapability(cap: Capability<&Manager>) {
             pre {
                 cap.borrow() != nil: "Invalid manager capability"
             }
-            self.addAccountCapability = cap
+            self.managerCapability = cap
         }
 
         pub fun setNewDelegator(nodeID: String, delegatorID: UInt32){
@@ -142,29 +151,30 @@ pub contract sFlowStakingManager9 {
         }
 
         pub fun setNewDelegator(nodeID: String, delegatorID: UInt32){
-            if(nodeID == sFlowStakingManager9.nodeID)
+            if(nodeID == sFlowStakingManager13.nodeID){
                 panic("Node id is same")
+            }
 
-            sFlowStakingManager9.prevNodeID = sFlowStakingManager9.nodeID
-            sFlowStakingManager9.prevDelegatorID = sFlowStakingManager9.delegatorID
-            sFlowStakingManager9.nodeID = nodeID
-            sFlowStakingManager9.delegatorID = delegatorID
+            sFlowStakingManager13.prevNodeID = sFlowStakingManager13.nodeID
+            sFlowStakingManager13.prevDelegatorID = sFlowStakingManager13.delegatorID
+            sFlowStakingManager13.nodeID = nodeID
+            sFlowStakingManager13.delegatorID = delegatorID
         }
 
         pub fun manageCollection(){
             var requiredStakedAmount:UFix64 = 0.0
             var index = 0
-            for unstakeTicket in sFlowStakingManager9.unstakeList {
+            for unstakeTicket in sFlowStakingManager13.unstakeList {
                 let tempAddress : AnyStruct = unstakeTicket["address"]!
                 let accountAddress : Address = tempAddress as! Address
                 let accountStaker = getAccount(accountAddress)
                 let tempAmount : AnyStruct = unstakeTicket["amount"]!
                 let amount : UFix64 = tempAmount as! UFix64
 
-                let requiredFlow = amount * sFlowStakingManager9.getCurrentPrice();
-                if (sFlowStakingManager9.getCurrentPoolAmount() > requiredFlow + 10.0)
+                let requiredFlow = amount * sFlowStakingManager13.getCurrentPrice();
+                if (sFlowStakingManager13.getCurrentPoolAmount() > requiredFlow + 10.0)
                 {
-                    let providerRef =  sFlowStakingManager9.account
+                    let providerRef =  sFlowStakingManager13.account
                         .borrow<&FlowToken.Vault>(from: /storage/flowTokenVault)
                         ?? panic("Could not borrow provider reference to the provider's Vault")
 
@@ -177,20 +187,20 @@ pub contract sFlowStakingManager9 {
                         ?? panic("Could not borrow receiver reference to the recipient's Vault")
                     receiverRef.deposit(from: <-sentVault)
 
-                    let managersFlowToken2Vault =  sFlowStakingManager9.account
+                    let managersFlowToken2Vault =  sFlowStakingManager13.account
                         .borrow<&sFlowToken2.Vault>(from: /storage/sFlowToken2Vault)
                         ?? panic("Could not borrow provider reference to the provider's Vault")
 
                     // Deposit the withdrawn tokens in the provider's receiver
                     let burningVault: @FungibleToken.Vault <- managersFlowToken2Vault.withdraw(amount: amount)
 
-                    let managersFlowToken2BurnerVault =  sFlowStakingManager9.account
+                    let managersFlowToken2BurnerVault =  sFlowStakingManager13.account
                         .borrow<&sFlowToken2.Burner>(from: /storage/sFlowToken2Burner)
                         ?? panic("Could not borrow provider reference to the provider's Vault")
 
                     managersFlowToken2BurnerVault.burnTokens(from: <- burningVault)
 
-                    sFlowStakingManager9.unstakeList.remove(at: index)
+                    sFlowStakingManager13.unstakeList.remove(at: index)
                     continue
                 }
                 requiredStakedAmount = requiredStakedAmount + requiredFlow
@@ -200,10 +210,10 @@ pub contract sFlowStakingManager9 {
             var bStakeNew : Bool = true
 
             if( requiredStakedAmount > 0.0 ){
-                requiredStakedAmount = requiredStakedAmount + 10.1 - sFlowStakingManager9.getCurrentPoolAmount()
-                let delegatingInfo = sFlowStakingManager9.getDelegatorInfo()
+                requiredStakedAmount = requiredStakedAmount + 10.1 - sFlowStakingManager13.getCurrentPoolAmount()
+                let delegatingInfo = sFlowStakingManager13.getDelegatorInfo()
                 if( delegatingInfo.tokensUnstaked > 0.0 ) {
-                    let stakingCollectionRef: &FlowStakingCollection.StakingCollection = sFlowStakingManager9.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
+                    let stakingCollectionRef: &FlowStakingCollection.StakingCollection = sFlowStakingManager13.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
                         ?? panic("Could not borrow ref to StakingCollection")
                     var amount: UFix64 = 0.0
                     if(delegatingInfo.tokensUnstaked >= requiredStakedAmount)
@@ -212,16 +222,16 @@ pub contract sFlowStakingManager9 {
                     } else {
                         amount = delegatingInfo.tokensUnstaked
                     }
-                    stakingCollectionRef.withdrawUnstakedTokens(nodeID: sFlowStakingManager9.nodeID, delegatorID: sFlowStakingManager9.delegatorID, amount: amount)
+                    stakingCollectionRef.withdrawUnstakedTokens(nodeID: sFlowStakingManager13.nodeID, delegatorID: sFlowStakingManager13.delegatorID, amount: amount)
                     requiredStakedAmount = requiredStakedAmount - amount
                     bStakeNew = false
                 }
             }
 
             if( requiredStakedAmount > 0.0 ){
-                let delegatingInfo = sFlowStakingManager9.getDelegatorInfo()
+                let delegatingInfo = sFlowStakingManager13.getDelegatorInfo()
                 if( delegatingInfo.tokensRewarded > 0.0 ) {
-                    let stakingCollectionRef: &FlowStakingCollection.StakingCollection = sFlowStakingManager9.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
+                    let stakingCollectionRef: &FlowStakingCollection.StakingCollection = sFlowStakingManager13.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
                         ?? panic("Could not borrow ref to StakingCollection")
                     var amount: UFix64 = 0.0
                     if(delegatingInfo.tokensRewarded >= requiredStakedAmount)
@@ -230,52 +240,74 @@ pub contract sFlowStakingManager9 {
                     } else {
                         amount = delegatingInfo.tokensRewarded
                     }
-                    stakingCollectionRef.withdrawRewardedTokens(nodeID: sFlowStakingManager9.nodeID, delegatorID: sFlowStakingManager9.delegatorID, amount: amount)
+                    stakingCollectionRef.withdrawRewardedTokens(nodeID: sFlowStakingManager13.nodeID, delegatorID: sFlowStakingManager13.delegatorID, amount: amount)
                     requiredStakedAmount = requiredStakedAmount - amount
                     bStakeNew = false
                 }
             }
 
             if( requiredStakedAmount > 0.0 ){
-                let delegatingInfo = sFlowStakingManager9.getDelegatorInfo()
-                let amount: UFix64 = requiredStakedAmount - delegatingInfo.tokensUnstaking - delegatingInfo.tokensRequestedToUnstake
-
-                let stakingCollectionRef: &FlowStakingCollection.StakingCollection = sFlowStakingManager9.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
-                    ?? panic("Could not borrow ref to StakingCollection")
-                stakingCollectionRef.requestUnstaking(nodeID: sFlowStakingManager9.nodeID, delegatorID: sFlowStakingManager9.delegatorID, amount: amount)
-                bStakeNew = false
-            }
-
-            if( requiredStakedAmount < 0.1 && bStakeNew ){
-                let delegatingInfo = sFlowStakingManager9.getDelegatorInfo()
-                let stakingCollectionRef: &FlowStakingCollection.StakingCollection = sFlowStakingManager9.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
-                    ?? panic("Could not borrow ref to StakingCollection")
-                stakingCollectionRef.stakeUnstakedTokens(nodeID: sFlowStakingManager9.nodeID, delegatorID: sFlowStakingManager9.delegatorID, amount: delegatingInfo.tokensUnstaked)
-                stakingCollectionRef.stakeRewardedTokens(nodeID: sFlowStakingManager9.nodeID, delegatorID: sFlowStakingManager9.delegatorID, amount: delegatingInfo.tokensRewarded)
-
-                if(sFlowStakingManager9.getCurrentPoolAmount() > 10.1){
-                    stakingCollectionRef.stakeNewTokens(nodeID: sFlowStakingManager9.nodeID, delegatorID: sFlowStakingManager9.delegatorID, amount: (sFlowStakingManager9.getCurrentPoolAmount() - 10.1))
+                let delegatingInfo = sFlowStakingManager13.getDelegatorInfo()
+                if( delegatingInfo.tokensCommitted > 0.0 ) {
+                    let stakingCollectionRef: &FlowStakingCollection.StakingCollection = sFlowStakingManager13.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
+                        ?? panic("Could not borrow ref to StakingCollection")
+                    var amount: UFix64 = 0.0
+                    if(delegatingInfo.tokensCommitted >= requiredStakedAmount)
+                    {
+                        amount = requiredStakedAmount                    
+                    } else {
+                        amount = delegatingInfo.tokensCommitted
+                    }
+                    stakingCollectionRef.requestUnstaking(nodeID: sFlowStakingManager13.nodeID, delegatorID: sFlowStakingManager13.delegatorID, amount: amount)
+                    requiredStakedAmount = requiredStakedAmount - amount
+                    bStakeNew = false
                 }
             }
 
-            if(sFlowStakingManager9.prevNodeID != "") {
-                let delegatingInfo = sFlowStakingManager9.getPrevDelegatorInfo()
-                let stakingCollectionRef: &FlowStakingCollection.StakingCollection = sFlowStakingManager9.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
+            if( requiredStakedAmount > 0.0 ){
+                let delegatingInfo = sFlowStakingManager13.getDelegatorInfo()
+                if(delegatingInfo.tokensUnstaking + delegatingInfo.tokensRequestedToUnstake < requiredStakedAmount){
+                    let amount: UFix64 = requiredStakedAmount - delegatingInfo.tokensUnstaking - delegatingInfo.tokensRequestedToUnstake
+
+                    let stakingCollectionRef: &FlowStakingCollection.StakingCollection = sFlowStakingManager13.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
+                        ?? panic("Could not borrow ref to StakingCollection")
+                    stakingCollectionRef.requestUnstaking(nodeID: sFlowStakingManager13.nodeID, delegatorID: sFlowStakingManager13.delegatorID, amount: amount)
+                    bStakeNew = false
+                }
+            }
+
+            if( requiredStakedAmount < 0.1 && bStakeNew ){
+                let delegatingInfo = sFlowStakingManager13.getDelegatorInfo()
+                let stakingCollectionRef: &FlowStakingCollection.StakingCollection = sFlowStakingManager13.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
                     ?? panic("Could not borrow ref to StakingCollection")
-                if(delegatingInfo.tokensCommitted > 0.0 || delegatingInfo.tokensStaked > 0.0)
-                    stakingCollectionRef.requestUnstaking(nodeID: sFlowStakingManager9.prevNodeID, delegatorID: sFlowStakingManager9.prevDelegatorID, amount: delegatingInfo.tokensCommitted + delegatingInfo.tokensStaked)
-                if(delegatingInfo.tokensRewarded > 0.0)
-                   stakingCollectionRef.withdrawRewardedTokens(nodeID: sFlowStakingManager9.prevNodeID, delegatorID: sFlowStakingManager9.prevDelegatorID, amount: delegatingInfo.tokensRewarded)
+                stakingCollectionRef.stakeUnstakedTokens(nodeID: sFlowStakingManager13.nodeID, delegatorID: sFlowStakingManager13.delegatorID, amount: delegatingInfo.tokensUnstaked)
+                stakingCollectionRef.stakeRewardedTokens(nodeID: sFlowStakingManager13.nodeID, delegatorID: sFlowStakingManager13.delegatorID, amount: delegatingInfo.tokensRewarded)
+
+                if(sFlowStakingManager13.getCurrentPoolAmount() > 10.1){
+                    stakingCollectionRef.stakeNewTokens(nodeID: sFlowStakingManager13.nodeID, delegatorID: sFlowStakingManager13.delegatorID, amount: (sFlowStakingManager13.getCurrentPoolAmount() - 10.1))
+                }
+            }
+
+            if(sFlowStakingManager13.prevNodeID != "") {
+                let delegatingInfo = sFlowStakingManager13.getPrevDelegatorInfo()
+                let stakingCollectionRef: &FlowStakingCollection.StakingCollection = sFlowStakingManager13.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
+                    ?? panic("Could not borrow ref to StakingCollection")
+                if(delegatingInfo.tokensCommitted > 0.0 || delegatingInfo.tokensStaked > 0.0){
+                    stakingCollectionRef.requestUnstaking(nodeID: sFlowStakingManager13.prevNodeID, delegatorID: sFlowStakingManager13.prevDelegatorID, amount: delegatingInfo.tokensCommitted + delegatingInfo.tokensStaked)
+                }
+                if(delegatingInfo.tokensRewarded > 0.0){
+                   stakingCollectionRef.withdrawRewardedTokens(nodeID: sFlowStakingManager13.prevNodeID, delegatorID: sFlowStakingManager13.prevDelegatorID, amount: delegatingInfo.tokensRewarded)
+                }
                 if(delegatingInfo.tokensUnstaked > 0.0){
-                    stakingCollectionRef.withdrawUnstakedTokens(nodeID: sFlowStakingManager9.prevNodeID, delegatorID: sFlowStakingManager9.prevDelegatorID, amount: delegatingInfo.tokensUnstaked)
+                    stakingCollectionRef.withdrawUnstakedTokens(nodeID: sFlowStakingManager13.prevNodeID, delegatorID: sFlowStakingManager13.prevDelegatorID, amount: delegatingInfo.tokensUnstaked)
                 }
                 if(delegatingInfo.tokensCommitted == 0.0 &&
                 delegatingInfo.tokensStaked == 0.0 &&
                 delegatingInfo.tokensUnstaking == 0.0 &&
                 delegatingInfo.tokensRewarded == 0.0 &&
                 delegatingInfo.tokensUnstaked == 0.0) {
-                    sFlowStakingManager9.prevNodeID = ""
-                    sFlowStakingManager9.prevDelegatorID = 0
+                    sFlowStakingManager13.prevNodeID = ""
+                    sFlowStakingManager13.prevDelegatorID = 0
                 }
             }
         }
@@ -285,17 +317,16 @@ pub contract sFlowStakingManager9 {
         self.unstakeList = []
 
                 /// create a single admin collection and store it
-        self.account.save(<-create Manager(), to: /storage/sFlowStakingManager9)
+        self.account.save(<-create Manager(), to: /storage/sFlowStakingManager13)
         
-        self.account.link<&sFlowStakingManager9.Manager>(
-            /private/sFlowStakingManager9,
-            target: /storage/sFlowStakingManager9
+        self.account.link<&sFlowStakingManager13.Manager>(
+            /private/sFlowStakingManager13,
+            target: /storage/sFlowStakingManager13
         ) ?? panic("Could not get a capability to the manager")
 
-        nodeID = "4d617820576f6c74657200ff6e729e24d35ee1aa0a76bc05746f8c99879e8eaf"
-        delegatorID = 1
-        prevNodeID = ""
-        prevDelegatorID = 0
+        self.nodeID = "4d617820576f6c74657200ff6e729e24d35ee1aa0a76bc05746f8c99879e8eaf"
+        self.delegatorID = 1
+        self.prevNodeID = ""
+        self.prevDelegatorID = 0
     }
-
 }

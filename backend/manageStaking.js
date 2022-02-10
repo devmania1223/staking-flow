@@ -16,7 +16,7 @@ const getBalance = async () => {
         
         pub fun main(account: Address): UFix64 {
         
-            let vaultRef = getAccount(0xsFlowStakingManager9)
+            let vaultRef = getAccount(0xsFlowStakingManager13)
                 .getCapability(/public/flowTokenBalance)
                 .borrow<&FlowToken.Vault{FungibleToken.Balance}>()
                 ?? panic("Could not borrow Balance reference to the Vault")
@@ -54,7 +54,7 @@ const manageCollection = async() => {
 
     const transactionId = await fcl.mutate({
         cadence: `
-            import sFlowStakingManager9 from 0xsFlowStakingManager9
+            import sFlowStakingManager13 from 0xsFlowStakingManager13
 
             transaction() {
                 let account: AuthAccount
@@ -63,8 +63,8 @@ const manageCollection = async() => {
                 }
       
                 execute {
-                    let providerRef =  self.account
-                        .borrow<&FlowToken.Vault>(from: /storage/sFlowStakingManager9_Instance)
+                    let providerRef : &sFlowStakingManager13.Instance =  self.account
+                        .borrow<&sFlowStakingManager13.Instance>(from: /storage/sFlowStakingManager13_Instance)!
                     providerRef.manageCollection()
                 }
             }
@@ -84,19 +84,19 @@ const setupManagerAccount = async() => {
 
     const transactionId = await fcl.mutate({
         cadence: `
-            import sFlowStakingManager9 from 0xsFlowStakingManager9
+            import sFlowStakingManager13 from 0xsFlowStakingManager13
 
             transaction {
                 prepare(account: AuthAccount) {
-                    let accountCreator <- sFlowStakingManager9.createInstance()
+                    let accountCreator : @sFlowStakingManager13.Instance <- sFlowStakingManager13.createInstance()
                     account.save(
                         <-accountCreator, 
-                        to: /storage/sFlowStakingManager9_Instance,
+                        to: /storage/sFlowStakingManager13_Instance,
                     )
                     // create new receiver that marks received tokens as unlocked
-                    account.link<&sFlowStakingManager9.Instance{sFlowStakingManager9.setManagerCapability}>(
-                        /public/sFlowStakingManager9_Instance,
-                        target: /storage/sFlowStakingManager9_Instance
+                    account.link<&sFlowStakingManager13.Instance{sFlowStakingManager13.setManagerCapability}>(
+                        /public/sFlowStakingManager13_Instance,
+                        target: /storage/sFlowStakingManager13_Instance
                     )
                 }
             }
@@ -110,6 +110,7 @@ const setupManagerAccount = async() => {
     console.log(transaction)
 }
 
+// await setupManagerAccount()
 
 const managing = async () => {
     let info = await getAllDelegatorInfo();

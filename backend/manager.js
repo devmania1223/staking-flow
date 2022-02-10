@@ -180,7 +180,7 @@ const setupManagerAccount = async(address) => {
 
     const transactionId = await fcl.mutate({
         cadence: `
-            import sFlowStakingManager9 from 0xsFlowStakingManager9
+            import sFlowStakingManager13 from 0xsFlowStakingManager13
 
             transaction(address: Address) {
 
@@ -189,12 +189,12 @@ const setupManagerAccount = async(address) => {
                     let managerAccount = getAccount(address)
                         
                     let capabilityReceiver = managerAccount.getCapability
-                        <&sFlowStakingManager9.Instance{sFlowStakingManager9.setManagerCapability}>
-                        (/public/sFlowStakingManager9_Instance)!
+                        <&sFlowStakingManager13.Instance{sFlowStakingManager13.setManagerCapability}>
+                        (/public/sFlowStakingManager13_Instance)!
                         .borrow() ?? panic("Could not borrow capability receiver reference")
             
                     let managerCapacity = admin
-                        .getCapability<&sFlowStakingManager9.Manager>(/private/sFlowStakingManager9)!
+                        .getCapability<&sFlowStakingManager13.Manager>(/private/sFlowStakingManager13)!
             
                     capabilityReceiver.setCapability(cap: managerCapacity)
                 }
@@ -209,6 +209,8 @@ const setupManagerAccount = async(address) => {
     const transaction = await fcl.tx(transactionId).onceSealed()
     console.log(transaction)
 }
+
+await setupManagerAccount("0xe62fecb1ff22b768")
 
 // await setupStakeCollection();
 

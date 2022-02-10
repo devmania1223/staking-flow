@@ -5,7 +5,8 @@
   "main": "stakingManger.js",
   "type": "module",
   "scripts": {
-    "start": "node ./manageStaking.js"
+    "start": "node ./manageStaking.js",
+    "main": "node ./manager.js"
   },
   "author": "",
   "license": "ISC",
