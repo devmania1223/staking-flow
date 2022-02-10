@@ -2,52 +2,9 @@ import FlowService from "./flowService.js"
 import * as fcl from "@onflow/fcl";
 import "./config.js";
 
-const manager = new FlowService.FlowService("0x44886dbbf20e893c", "784bf71b737be0b49652030fcaa78369a60df6fbed57d5e0fbef57aa631e3ec8" , 0);
-
-const stakingCollectionSettedup = true;
-
-const getBalance = async () => {
-    const balance = await fcl.query({
-        cadence: `
-        // This script reads the balance field of an account's FlowToken Balance
-
-        import FungibleToken from 0xFungibleToken
-        import FlowToken from 0xFlowToken
-        
-        pub fun main(account: Address): UFix64 {
-        
-            let vaultRef = getAccount(account)
-                .getCapability(/public/flowTokenBalance)
-                .borrow<&FlowToken.Vault{FungibleToken.Balance}>()
-                ?? panic("Could not borrow Balance reference to the Vault")
-        
-            return vaultRef.balance
-        }
-        `,
-        args: (arg, t) => [arg("0x44886dbbf20e893c", t.Address)]
-    })
-
-    return balance;
-}
-
-
-const getAllDelegatorInfo = async () => {
-    const info = await fcl.query({
-        cadence: `
-        import FlowStakingCollection from 0xFlowStakingCollection
-        import FlowIDTableStaking from 0xFlowIDTableStaking
-        
-        /// Gets an array of all the delegator metadata for delegators stored in the staking collection
-        
-        pub fun main(address: Address): [FlowIDTableStaking.DelegatorInfo] {
-            return FlowStakingCollection.getAllDelegatorInfo(address: address)
-        }
-        `,
-        args: (arg, t) => [arg("0x44886dbbf20e893c", t.Address)]
-    })
-
-    return info;
-}
+const accad = "0x44886dbbf20e893c"
+const accke = "784bf71b737be0b49652030fcaa78369a60df6fbed57d5e0fbef57aa631e3ec8"
+const manager = new FlowService.FlowService(accad, accke , 0);
 
 const getNodeInfo = async (nodeID) => {
     const info = await fcl.query({
@@ -83,7 +40,7 @@ const getApprovedNodes = async () => {
 }
 
 const setupStakeCollection = async() => {
-    const account = await manager.getAccount("0x44886dbbf20e893c");
+    const account = await manager.getAccount(accad);
     const signer = manager.authorizeMinter(account);
 
     const transactionId = await fcl.mutate({
@@ -149,7 +106,7 @@ const setupStakeCollection = async() => {
 }
 
 const registerDelegator = async(nodeID, amount) => {
-    const account = await manager.getAccount("0x44886dbbf20e893c");
+    const account = await manager.getAccount(accad);
     const signer = manager.authorizeMinter(account);
 
     const transactionId = await fcl.mutate({
@@ -183,7 +140,7 @@ const registerDelegator = async(nodeID, amount) => {
 }
 
 const stakeNewTokens = async(nodeID, delegatorID, amount) => {
-    const account = await manager.getAccount("0x44886dbbf20e893c");
+    const account = await manager.getAccount(accad);
     const signer = manager.authorizeMinter(account);
 
     const transactionId = await fcl.mutate({
@@ -217,60 +174,49 @@ const stakeNewTokens = async(nodeID, delegatorID, amount) => {
     console.log(transaction)
 }
 
-const manageCollection = async() => {
-    const account = await manager.getAccount("0x44886dbbf20e893c");
+const setupManagerAccount = async(address) => {
+    const account = await manager.getAccount(accad);
     const signer = manager.authorizeMinter(account);
 
     const transactionId = await fcl.mutate({
         cadence: `
             import sFlowStakingManager9 from 0xsFlowStakingManager9
 
-            transaction() {
-                let account: AuthAccount
-                prepare(account: AuthAccount) {
-                    self.account = account
-                }
-      
-                execute {
-                    sFlowStakingManager9.manageCollection()
+            transaction(address: Address) {
+
+                prepare(admin: AuthAccount) {
+            
+                    let managerAccount = getAccount(address)
+                        
+                    let capabilityReceiver = managerAccount.getCapability
+                        <&sFlowStakingManager9.Instance{sFlowStakingManager9.setManagerCapability}>
+                        (/public/sFlowStakingManager9_Instance)!
+                        .borrow() ?? panic("Could not borrow capability receiver reference")
+            
+                    let managerCapacity = admin
+                        .getCapability<&sFlowStakingManager9.Manager>(/private/sFlowStakingManager9)!
+            
+                    capabilityReceiver.setCapability(cap: managerCapacity)
                 }
             }
         `,
-      payer: signer,
-      proposer: signer,
-      authorizations: [signer],
-      limit: 9999
+        args: (arg, t) => [arg(address, t.Address)],
+        payer: signer,
+        proposer: signer,
+        authorizations: [signer],
+        limit: 9999
     })
     const transaction = await fcl.tx(transactionId).onceSealed()
     console.log(transaction)
 }
 
-if(!stakingCollectionSettedup){
-    await setupStakeCollection();
-    await registerDelegator("4d617820576f6c74657200ff6e729e24d35ee1aa0a76bc05746f8c99879e8eaf", "500.0");
-}
+// await setupStakeCollection();
+
+// await registerDelegator("4d617820576f6c74657200ff6e729e24d35ee1aa0a76bc05746f8c99879e8eaf", "500.0");
+
 // getApprovedNodes().then((info) => {
 //     for(let i=0; i<info.length; i++)
 //     {
 //         getNodeInfo(info[i]).then((info) => {console.log(info)});
 //     }
 // });
-
-const managing = async () => {
-    let info = await getAllDelegatorInfo();
-    console.log(info);
-
-    let balance = await getBalance();
-    console.log(balance);
-
-    // if(balance >= 10.0)
-    // {
-    //     let newAmount = balance-10.0;
-    //     await stakeNewTokens("4d617820576f6c74657200ff6e729e24d35ee1aa0a76bc05746f8c99879e8eaf", 1, newAmount.toString());
-    //     console.log("updated", balance);
-    // }
-    await manageCollection();
-    setTimeout(managing, 5000);
-}
-
-setTimeout(managing, 5000);
