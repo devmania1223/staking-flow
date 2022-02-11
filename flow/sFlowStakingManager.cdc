@@ -15,6 +15,22 @@ pub contract sFlowStakingManager13 {
     access(contract) var prevNodeID: String
     access(contract) var prevDelegatorID: UInt32
 
+    pub fun getCurrentUnstakeAmount(userAddress: Address) : UFix64 {
+        var requestedUnstakeAmount:UFix64 = 0.0
+        for unstakeTicket in sFlowStakingManager13.unstakeList {
+            let tempAddress : AnyStruct = unstakeTicket["address"]!
+            let accountAddress : Address = tempAddress as! Address
+            let accountStaker = getAccount(accountAddress)
+            let tempAmount : AnyStruct = unstakeTicket["amount"]!
+            let amount : UFix64 = tempAmount as! UFix64
+
+            if(userAddress == accountAddress){
+                requestedUnstakeAmount = requestedUnstakeAmount + amount
+            }
+        }
+        return requestedUnstakeAmount
+    }
+
     pub fun getCurrentPoolAmount() : UFix64{
         let vaultRef = self.account
             .getCapability(/public/flowTokenBalance)
