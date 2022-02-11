@@ -1,8 +1,8 @@
 import Head from 'next/head'
 import Image from 'next/image'
 import { useState, useEffect } from "react";
-import "../flow/config";
 import * as fcl from "@onflow/fcl";
+
 import AppBar from '@mui/material/AppBar';
 import Button from '@mui/material/Button';
 import Toolbar from '@mui/material/Toolbar';
@@ -14,12 +14,24 @@ import Grid from '@mui/material/Grid';
 import Link from '@mui/material/Link';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
-import { styled } from '@mui/system';
-import { useSwitch } from '@mui/base/SwitchUnstyled';
-import MUISwitch from './components/StakingSwitch';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Divider from '@mui/material/Divider';
+
+import { styled } from '@mui/system';
+import { useSwitch } from '@mui/base/SwitchUnstyled';
+import { ThemeProvider, createTheme} from '@mui/material/styles';
+
+import MUISwitch from './components/StakingSwitch';
+import "../flow/config";
+
+const theme = createTheme({
+  typography: {
+    fontFamily: [
+      'Arial, sans-serif', 
+    ].join(','),
+  },
+});
 
 export default function Home() {
 
@@ -332,114 +344,116 @@ export default function Home() {
 
   return (
     <div>
-      <Head>
-        <title>Flow staking with sFlow</title>
-        <meta name="description" content="Flow Staking App" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+      <ThemeProvider theme={theme}>
+        <Head>
+          <title>Flow staking with sFlow</title>
+          <meta name="description" content="Flow Staking App" />
+          <link rel="icon" href="/favicon.ico" />
+        </Head>
 
-      <Container>
-        <AppBar position="static">
-          <Toolbar>
-            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-              sFlow Staking
-            </Typography>
-            {user.loggedIn
-            ? <AuthedState />
-            : <UnauthenticatedState />
-            }
-          </Toolbar>
-        </AppBar>
-      </Container>
+        <Container>
+          <AppBar position="static">
+            <Toolbar>
+              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                sFlow Staking
+              </Typography>
+              {user.loggedIn
+              ? <AuthedState />
+              : <UnauthenticatedState />
+              }
+            </Toolbar>
+          </AppBar>
+        </Container>
 
-      <main>
-        <Box
-          sx={{
-            pt: 4,
-            pb: 0,
-          }}
-        >
-          <Container maxWidth="sm">
-            <Typography
-              component="h1"
-              variant="h2"
-              align="center"
-              color="text.primary"
-              gutterBottom
-            >
-              Stake Flow
-            </Typography>
-            <Typography variant="h5" align="center" color="text.secondary" paragraph>
-              Stake Flow and receive sFlow while staking
-            </Typography>
+        <main>
+          <Box
+            sx={{
+              pt: 4,
+              pb: 0,
+            }}
+          >
+            <Container maxWidth="sm">
+              <Typography
+                component="h1"
+                variant="h2"
+                align="center"
+                color="text.primary"
+                gutterBottom
+              >
+                Stake Flow
+              </Typography>
+              <Typography variant="h5" align="center" color="text.secondary" paragraph>
+                Stake Flow and receive sFlow while staking
+              </Typography>
 
-            <Stack
-              sx={{ pt: 4 }}
-              direction="row"
-              spacing={2}
-              justifyContent="center"
-            >
-              <MUISwitch onChange={switchMode} />
-            </Stack>
+              <Stack
+                sx={{ pt: 4 }}
+                direction="row"
+                spacing={2}
+                justifyContent="center"
+              >
+                <MUISwitch onChange={switchMode} />
+              </Stack>
+            </Container>
+            <Container component="main" maxWidth="sm" sx={{ mb: 4 }}>
+            <Paper variant="outlined" sx={{ my: { xs: 3, md: 6 }, p: { xs: 2, md: 3 } }}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <TextField fullWidth value={stakeAmount || ''} label="Amount" color="secondary" onChange={updateStakeAmount} focused />
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography>CurrentPrice: {currentPrice}</Typography>
+                  <Divider></Divider>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography>FlowBalance: {currentFlowBalance}</Typography>
+                  <Divider></Divider>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography>sFlowBalance: {currentsFlowBalance}</Typography>
+                  <Divider></Divider>
+                </Grid>
+                <Grid item xs={12}>
+                  <Button fullWidth onClick={submit} className="">{!currentMode ? "Stake" : "Unstake"}</Button>
+                </Grid>
+              </Grid>
+            </Paper>
           </Container>
-          <Container component="main" maxWidth="sm" sx={{ mb: 4 }}>
-          <Paper variant="outlined" sx={{ my: { xs: 3, md: 6 }, p: { xs: 2, md: 3 } }}>
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <TextField fullWidth value={stakeAmount || ''} label="Amount" color="secondary" onChange={updateStakeAmount} focused />
-              </Grid>
-              <Grid item xs={12}>
-                <div>CurrentPrice: {currentPrice}</div>
-                <Divider></Divider>
-              </Grid>
-              <Grid item xs={12}>
-                <div>FlowBalance: {currentFlowBalance}</div>
-                <Divider></Divider>
-              </Grid>
-              <Grid item xs={12}>
-                <div>sFlowBalance: {currentsFlowBalance}</div>
-                <Divider></Divider>
-              </Grid>
-              <Grid item xs={12}>
-                <Button fullWidth onClick={submit} className="">{!currentMode ? "Stake" : "Unstake"}</Button>
-              </Grid>
-            </Grid>
-          </Paper>
-        </Container>
-      </Box>
-      </main>
+        </Box>
+        </main>
 
-      <footer>
-        <Container
-          maxWidth="md"
-          component="footer"
-          sx={{
-            borderTop: (theme) => `1px solid ${theme.palette.divider}`,
-            mt: 8,
-            py: [3, 6],
-          }}
-        >
-          <Grid container spacing={4} justifyContent="space-evenly">
-            {footers.map((footer) => (
-              <Grid item xs={6} sm={3} key={footer.title}>
-                <Typography variant="h6" color="text.primary" gutterBottom>
-                  {footer.title}
-                </Typography>
-                <ul>
-                  {footer.description.map((item) => (
-                    <li key={item}>
-                      <Link href="#" variant="subtitle1" color="text.secondary">
-                        {item}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </Grid>
-            ))}
-          </Grid>
-          <Copyright sx={{ mt: 5 }} />
-        </Container>
-      </footer>
+        <footer>
+          <Container
+            maxWidth="md"
+            component="footer"
+            sx={{
+              borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+              mt: 8,
+              py: [3, 6],
+            }}
+          >
+            <Grid container spacing={4} justifyContent="space-evenly">
+              {footers.map((footer) => (
+                <Grid item xs={6} sm={3} key={footer.title}>
+                  <Typography variant="h6" color="text.primary" gutterBottom>
+                    {footer.title}
+                  </Typography>
+                  <ul>
+                    {footer.description.map((item) => (
+                      <li key={item}>
+                        <Link href="#" variant="subtitle1" color="text.secondary">
+                          {item}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </Grid>
+              ))}
+            </Grid>
+            <Copyright sx={{ mt: 5 }} />
+          </Container>
+        </footer>
+      </ThemeProvider>
     </div>
   )
 }

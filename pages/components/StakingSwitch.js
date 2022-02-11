@@ -70,7 +70,7 @@ const SwitchContent = styled('span')(
   display: table-cell;
   vertical-align: middle;
   font-size: 32px;
-  font-family: fantasy;
+  font-family: Arial,sans-serif;
   color: white;
 `,
 );
