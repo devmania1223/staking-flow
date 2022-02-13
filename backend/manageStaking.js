@@ -11,13 +11,13 @@ const account = await manager.getAccount(accad);
 const signer = manager.authorizeMinter(account);
 
 
-await setupManagerAccount()
+// await transactions.setupManagerAccount(signer)
 
 const managing = async () => {
     let info = await scripts.getAllDelegatorInfo("0x44886dbbf20e893c");
     console.log(info);
 
-    let balance = await scripts.getBalance("0x44886dbbf20e893c");
+    let balance = await scripts.getFlowBalance("0x44886dbbf20e893c");
     console.log(balance);
 
     try{

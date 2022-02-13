@@ -1,130 +1,75 @@
 import FlowService from "./flowService.js"
-import * as fcl from "@onflow/fcl";
 import "./config.js";
+import * as scripts from "./scripts.js"
+import * as transactions from "./transactions.js"
 
-const accad = "0xe62fecb1ff22b768"
-const accke = "dd25736b4e8e7bfcc82b970b94e67c9ce02a53f94f8d2d298983bb4de64f6f6d"
-const manager = new FlowService.FlowService(accad, accke , 0);
-
-const getBalance = async () => {
-    const balance = await fcl.query({
-        cadence: `
-        // This script reads the balance field of an account's FlowToken Balance
-
-        import FungibleToken from 0xFungibleToken
-        import FlowToken from 0xFlowToken
-        
-        pub fun main(account: Address): UFix64 {
-        
-            let vaultRef = getAccount(0xsFlowStakingManager13)
-                .getCapability(/public/flowTokenBalance)
-                .borrow<&FlowToken.Vault{FungibleToken.Balance}>()
-                ?? panic("Could not borrow Balance reference to the Vault")
-        
-            return vaultRef.balance
-        }
-        `,
-        args: (arg, t) => [arg("0x44886dbbf20e893c", t.Address)]
+const sleep = async (time) => {
+    return new Promise((resolve, reject) => {
+         setTimeout(() => {
+             resolve(true);
+         }, time);
     })
-
-    return balance;
-}
- 
-const getAllDelegatorInfo = async () => {
-    const info = await fcl.query({
-        cadence: `
-        import FlowStakingCollection from 0xFlowStakingCollection
-        import FlowIDTableStaking from 0xFlowIDTableStaking
-        
-        /// Gets an array of all the delegator metadata for delegators stored in the staking collection
-        
-        pub fun main(address: Address): [FlowIDTableStaking.DelegatorInfo] {
-            return FlowStakingCollection.getAllDelegatorInfo(address: address)
-        }
-        `,
-        args: (arg, t) => [arg("0x44886dbbf20e893c", t.Address)]
-    })
-
-    return info;
 }
 
-const manageCollection = async() => {
-    const account = await manager.getAccount(accad);
-    const signer = manager.authorizeMinter(account);
+const adminAccad = "0x44886dbbf20e893c"
+const adminAccke = "784bf71b737be0b49652030fcaa78369a60df6fbed57d5e0fbef57aa631e3ec8"
+const admin = new FlowService.FlowService(adminAccad, adminAccke , 0);
+const adminAccount = await admin.getAccount(adminAccad);
+const adminSigner = admin.authorizeMinter(adminAccount);
 
-    const transactionId = await fcl.mutate({
-        cadence: `
-            import sFlowStakingManager13 from 0xsFlowStakingManager13
+const managerAccad = "0xe62fecb1ff22b768"
+const managerAccke = "dd25736b4e8e7bfcc82b970b94e67c9ce02a53f94f8d2d298983bb4de64f6f6d"
+const manager = new FlowService.FlowService(managerAccad, managerAccke , 0);
+const managerAccount = await manager.getAccount(managerAccad);
+const managerSigner = manager.authorizeMinter(managerAccount);
 
-            transaction() {
-                let account: AuthAccount
-                prepare(account: AuthAccount) {
-                    self.account = account
-                }
-      
-                execute {
-                    let providerRef : &sFlowStakingManager13.Instance =  self.account
-                        .borrow<&sFlowStakingManager13.Instance>(from: /storage/sFlowStakingManager13_Instance)!
-                    providerRef.manageCollection()
-                }
-            }
-        `,
-      payer: signer,
-      proposer: signer,
-      authorizations: [signer],
-      limit: 9999
-    })
-    const transaction = await fcl.tx(transactionId).onceSealed()
-    console.log(transaction)
+const user1Accad = "0xeb021f6fca6e58a4"
+const user1Accke = "0c7057cee32b201433c15eca8c9e6875c01a21acb69c9359e5f1fe58d7b95074"
+const user1 = new FlowService.FlowService(user1Accad, user1Accke , 0);
+const user1Account = await user1.getAccount(user1Accad);
+const user1Signer = user1.authorizeMinter(user1Account);
+
+const user2Accad = "0x044f942b17112652"
+const user2Accke = "0784a48dcc0d0a38bab7b1fcfc7349d6bdcbed0c1f72cd0e93315b5ddc12b42d"
+const user2 = new FlowService.FlowService(user2Accad, user2Accke , 0);
+const user2Account = await user2.getAccount(user2Accad);
+const user2Signer = user2.authorizeMinter(user2Account);
+
+// await transactions.setupManagerAccount(managerSigner);
+// await transactions.setManagerCapabilityToAccount(adminSigner, managerAccad);
+
+if(!await scripts.accountInitialzed(user1Accad)){
+    await transactions.initAccount(user1Signer);
 }
 
-const setupManagerAccount = async() => {
-    const account = await manager.getAccount(accad);
-    const signer = manager.authorizeMinter(account);
-
-    const transactionId = await fcl.mutate({
-        cadence: `
-            import sFlowStakingManager13 from 0xsFlowStakingManager13
-
-            transaction {
-                prepare(account: AuthAccount) {
-                    let accountCreator : @sFlowStakingManager13.Instance <- sFlowStakingManager13.createInstance()
-                    account.save(
-                        <-accountCreator, 
-                        to: /storage/sFlowStakingManager13_Instance,
-                    )
-                    // create new receiver that marks received tokens as unlocked
-                    account.link<&sFlowStakingManager13.Instance{sFlowStakingManager13.setManagerCapability}>(
-                        /public/sFlowStakingManager13_Instance,
-                        target: /storage/sFlowStakingManager13_Instance
-                    )
-                }
-            }
-        `,
-        payer: signer,
-        proposer: signer,
-        authorizations: [signer],
-        limit: 9999
-    })
-    const transaction = await fcl.tx(transactionId).onceSealed()
-    console.log(transaction)
+if(!await scripts.accountInitialzed(user2Accad)){
+    await transactions.initAccount(user2Signer);
 }
 
-// await setupManagerAccount()
+console.log("Flow in Platform Pool: ", await scripts.getFlowBalance(adminAccad));
+console.log("Flow in Staking Collection: ", await scripts.getAllDelegatorInfo(adminAccad));
 
-const managing = async () => {
-    let info = await getAllDelegatorInfo();
-    console.log(info);
+console.log("Current sFlow Price: ", await scripts.getCurrentPrice());
+console.log("Flow Balance of user1: ", await scripts.getFlowBalance(user1Accad));
+console.log("sFlow Balance of user1: ", await scripts.getsFlowBalance(user1Accad));
 
-    let balance = await getBalance();
-    console.log(balance);
+console.log("User1 staking 50.0 Flow to platform...");
+await transactions.stake(user1Signer, "50.0");
 
-    try{
-        await manageCollection();
-    } catch (error) {
-        console.log(error)
-    }
-    setTimeout(managing, 5000);
+console.log("Current sFlow Price: ", await scripts.getCurrentPrice());
+console.log("Flow Balance of user1: ", await scripts.getFlowBalance(user1Accad));
+console.log("sFlow Balance of user1: ", await scripts.getsFlowBalance(user1Accad));
+
+console.log("User1 unstaking 10.0 sFlow to platform...");
+await transactions.unstake(user1Signer, "10.0");
+
+console.log("Current sFlow Price: ", await scripts.getCurrentPrice());
+console.log("Flow Balance of user1: ", await scripts.getFlowBalance(user1Accad));
+console.log("sFlow Balance of user1: ", await scripts.getsFlowBalance(user1Accad));
+
+for(let i=0; i<4; i++){
+    await sleep(10000);
+    console.log("Current sFlow Price: ", await scripts.getCurrentPrice());
+    console.log("Flow Balance of user1: ", await scripts.getFlowBalance(user1Accad));
+    console.log("sFlow Balance of user1: ", await scripts.getsFlowBalance(user1Accad));
 }
-
-setTimeout(managing, 5000);

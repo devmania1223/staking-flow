@@ -5,12 +5,12 @@ import * as transactions from "./transactions.js"
 
 const accad = "0x44886dbbf20e893c"
 const accke = "784bf71b737be0b49652030fcaa78369a60df6fbed57d5e0fbef57aa631e3ec8"
-const manager = new FlowService.FlowService(accad, accke , 0);
+const admin = new FlowService.FlowService(accad, accke , 0);
 
-const account = await manager.getAccount(accad);
-const signer = manager.authorizeMinter(account);
+const account = await admin.getAccount(accad);
+const signer = admin.authorizeMinter(account);
 
-await transactions.setupManagerAccount(signer, "0xe62fecb1ff22b768")
+await transactions.setManagerCapabilityToAccount(signer, "0xe62fecb1ff22b768")
 
 // await transactions.setupStakeCollection();
 

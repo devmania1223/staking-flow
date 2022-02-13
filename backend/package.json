@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node ./manageStaking.js",
-    "main": "node ./manager.js"
+    "main": "node ./manager.js",
+    "test": "node ./TestStakingPlatform.js"
   },
   "author": "",
   "license": "ISC",

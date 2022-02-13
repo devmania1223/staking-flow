@@ -295,6 +295,7 @@ export const stake = async (signer, stakeAmount) => {
 }
 
 export const initAccount = async (signer) => {
+    console.log("entered");
     const transactionId = await fcl.mutate({
       cadence: `
         import sFlowToken2 from 0xsFlowToken2
