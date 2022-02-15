@@ -98,7 +98,7 @@ export const stakeNewTokens = async(signer, nodeID, delegatorID, amount) => {
 export const setManagerCapabilityToAccount = async(signer, address) => {
     const transactionId = await fcl.mutate({
         cadence: `
-            import sFlowStakingManager14 from 0xsFlowStakingManager14
+            import sFlowStakingManager17 from 0xsFlowStakingManager17
 
             transaction(address: Address) {
 
@@ -107,12 +107,12 @@ export const setManagerCapabilityToAccount = async(signer, address) => {
                     let managerAccount = getAccount(address)
                         
                     let capabilityReceiver = managerAccount.getCapability
-                        <&sFlowStakingManager14.Instance{sFlowStakingManager14.setManagerCapability}>
-                        (/public/sFlowStakingManager14_Instance)!
+                        <&sFlowStakingManager17.Instance{sFlowStakingManager17.InstanceInterface}>
+                        (/public/sFlowStakingManager17_Instance)!
                         .borrow() ?? panic("Could not borrow capability receiver reference")
             
                     let managerCapacity = admin
-                        .getCapability<&sFlowStakingManager14.Manager>(/private/sFlowStakingManager14)!
+                        .getCapability<&sFlowStakingManager17.Manager>(/private/sFlowStakingManager17)!
             
                     capabilityReceiver.setCapability(cap: managerCapacity)
                 }
@@ -162,7 +162,7 @@ export const registerDelegator = async(signer, nodeID, amount) => {
 export const manageCollection = async(signer) => {
     const transactionId = await fcl.mutate({
         cadence: `
-            import sFlowStakingManager14 from 0xsFlowStakingManager14
+            import sFlowStakingManager17 from 0xsFlowStakingManager17
 
             transaction() {
                 let account: AuthAccount
@@ -171,9 +171,7 @@ export const manageCollection = async(signer) => {
                 }
       
                 execute {
-                    let providerRef : &sFlowStakingManager14.Instance =  self.account
-                        .borrow<&sFlowStakingManager14.Instance>(from: /storage/sFlowStakingManager14_Instance)!
-                    providerRef.manageCollection()
+                    sFlowStakingManager17.manageCollection()
                 }
             }
         `,
@@ -189,19 +187,19 @@ export const manageCollection = async(signer) => {
 export const setupManagerAccount = async(signer) => {
     const transactionId = await fcl.mutate({
         cadence: `
-            import sFlowStakingManager14 from 0xsFlowStakingManager14
+            import sFlowStakingManager17 from 0xsFlowStakingManager17
 
             transaction {
                 prepare(account: AuthAccount) {
-                    let accountCreator : @sFlowStakingManager14.Instance <- sFlowStakingManager14.createInstance()
+                    let accountCreator : @sFlowStakingManager17.Instance <- sFlowStakingManager17.createInstance()
                     account.save(
                         <-accountCreator, 
-                        to: /storage/sFlowStakingManager14_Instance,
+                        to: /storage/sFlowStakingManager17_Instance,
                     )
                     // create new receiver that marks received tokens as unlocked
-                    account.link<&sFlowStakingManager14.Instance{sFlowStakingManager14.setManagerCapability}>(
-                        /public/sFlowStakingManager14_Instance,
-                        target: /storage/sFlowStakingManager14_Instance
+                    account.link<&sFlowStakingManager17.Instance{sFlowStakingManager17.InstanceInterface}>(
+                        /public/sFlowStakingManager17_Instance,
+                        target: /storage/sFlowStakingManager17_Instance
                     )
                 }
             }
@@ -219,8 +217,8 @@ export const setupManagerAccount = async(signer) => {
 export const unstake = async (signer, stakeAmount) => {
     const transactionId = await fcl.mutate({
       cadence: `
-        import sFlowToken2 from 0xsFlowToken2
-        import sFlowStakingManager14 from 0xsFlowStakingManager14
+        import sFlowToken3 from 0xsFlowToken3
+        import sFlowStakingManager17 from 0xsFlowStakingManager17
         import FungibleToken from 0xFungibleToken
         import FlowToken from 0xFlowToken
 
@@ -232,12 +230,12 @@ export const unstake = async (signer, stakeAmount) => {
           }
       
           execute {
-              let vaultRef = self.account.borrow<&sFlowToken2.Vault>(from: /storage/sFlowToken2Vault)
+              let vaultRef = self.account.borrow<&sFlowToken3.Vault>(from: /storage/sFlowToken3Vault)
               ?? panic("Could not borrow reference to the owner's Vault!")
               let sFlowVault <- vaultRef.withdraw(amount: amount)
     
               // Deposit the withdrawn tokens in the recipient's receiver
-              sFlowStakingManager14.unstake(accountAddress: self.account.address, from: <-sFlowVault)
+              sFlowStakingManager17.unstake(accountAddress: self.account.address, from: <-sFlowVault)
           }
         }`,
     args: (arg, t) => [arg(stakeAmount, t.UFix64)],
@@ -253,8 +251,8 @@ export const unstake = async (signer, stakeAmount) => {
 export const stake = async (signer, stakeAmount) => {
     const transactionId = await fcl.mutate({
       cadence: `
-        import sFlowToken2 from 0xsFlowToken2
-        import sFlowStakingManager14 from 0xsFlowStakingManager14
+        import sFlowToken3 from 0xsFlowToken3
+        import sFlowStakingManager17 from 0xsFlowStakingManager17
         import FungibleToken from 0xFungibleToken
         import FlowToken from 0xFlowToken
 
@@ -277,9 +275,9 @@ export const stake = async (signer, stakeAmount) => {
       
           execute {
               // Deposit the withdrawn tokens in the recipient's receiver
-              let sFlowVault <- sFlowStakingManager14.stake(from: <-self.sentVault)
+              let sFlowVault <- sFlowStakingManager17.stake(from: <-self.sentVault)
 
-              let vaultRef = self.account.borrow<&sFlowToken2.Vault>(from: /storage/sFlowToken2Vault)
+              let vaultRef = self.account.borrow<&sFlowToken3.Vault>(from: /storage/sFlowToken3Vault)
               ?? panic("Could not borrow reference to the owner's Vault!")
               vaultRef.deposit(from: <- sFlowVault)
           }
@@ -298,25 +296,25 @@ export const initAccount = async (signer) => {
     console.log("entered");
     const transactionId = await fcl.mutate({
       cadence: `
-        import sFlowToken2 from 0xsFlowToken2
+        import sFlowToken3 from 0xsFlowToken3
         import FungibleToken from 0xFungibleToken
 
         transaction {
           prepare(account: AuthAccount) {
             // Only initialize the account if it hasn't already been initialized
             if account
-            .getCapability(/public/sFlowToken2Receiver)
+            .getCapability(/public/sFlowToken3Receiver)
             .borrow<&{FungibleToken.Receiver}>() == nil {
               // Store the vault in the account storage
-              account.save<@sFlowToken2.Vault>(<-sFlowToken2.createEmptyVault(), to: /storage/sFlowToken2Vault)
+              account.save<@sFlowToken3.Vault>(<-sFlowToken3.createEmptyVault(), to: /storage/sFlowToken3Vault)
           
               log("Empty Vault stored")
           
               // Create a public Receiver capability to the Vault
-              let ReceiverRef1 = account.link<&sFlowToken2.Vault{FungibleToken.Receiver}>(/public/sFlowToken2Receiver, target: /storage/sFlowToken2Vault)
+              let ReceiverRef1 = account.link<&sFlowToken3.Vault{FungibleToken.Receiver}>(/public/sFlowToken3Receiver, target: /storage/sFlowToken3Vault)
 
               // Create a public Balance capability to the Vault
-              let BalanceRef = account.link<&sFlowToken2.Vault{FungibleToken.Balance}>(/public/sFlowToken2Balance, target: /storage/sFlowToken2Vault)
+              let BalanceRef = account.link<&sFlowToken3.Vault{FungibleToken.Balance}>(/public/sFlowToken3Balance, target: /storage/sFlowToken3Vault)
 
               log("References created")            }
           }

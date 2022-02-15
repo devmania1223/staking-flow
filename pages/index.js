@@ -36,7 +36,6 @@ const theme = createTheme({
 });
 
 export default function Home() {
-
   const [user, setUser] = useState({loggedIn: null})
   const [currentPrice, setCurrentPrice] = useState()
   const [currentFlowBalance, setCurrentFlowBalance] = useState()

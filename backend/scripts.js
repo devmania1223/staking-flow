@@ -52,10 +52,9 @@ export const getAllDelegatorInfo = async (address) => {
 }
 
 export const accountInitialzed = async (address) => {
-    console.log('Initialized   ... ', address);
     var response = await fcl.query({
         cadence : `
-        import sFlowToken2 from 0xsFlowToken2
+        import sFlowToken3 from 0xsFlowToken3
         import FungibleToken from 0xFungibleToken
 
         // This script reads the Vault balances of two accounts.
@@ -64,7 +63,7 @@ export const accountInitialzed = async (address) => {
             let account = getAccount(accountAddress)
 
             let accountRef = account
-            .getCapability(/public/sFlowToken2Receiver)
+            .getCapability(/public/sFlowToken3Receiver)
             .borrow<&{FungibleToken.Receiver}>()
 
             if accountRef == nil {
@@ -80,11 +79,11 @@ export const accountInitialzed = async (address) => {
 export const getCurrentPrice = async () => {
     var response = await fcl.query({
         cadence : `
-        import sFlowStakingManager14 from 0xsFlowStakingManager14
+        import sFlowStakingManager17 from 0xsFlowStakingManager17
 
         // This script reads the Vault balances of two accounts.
         pub fun main() : UFix64 {
-            let price = sFlowStakingManager14.getCurrentPrice()
+            let price = sFlowStakingManager17.getCurrentPrice()
             return price
         }
         `
@@ -121,13 +120,13 @@ export const getsFlowBalance = async (address) => {
         // This script reads the balance field of an account's FlowToken Balance
 
         import FungibleToken from 0xFungibleToken
-        import sFlowToken2 from 0xsFlowToken2
+        import sFlowToken3 from 0xsFlowToken3
         
         pub fun main(account: Address): UFix64 {
         
             let vaultRef = getAccount(account)
-                .getCapability(/public/sFlowToken2Balance)
-                .borrow<&sFlowToken2.Vault{FungibleToken.Balance}>()
+                .getCapability(/public/sFlowToken3Balance)
+                .borrow<&sFlowToken3.Vault{FungibleToken.Balance}>()
                 ?? panic("Could not borrow Balance reference to the Vault")
         
             return vaultRef.balance
