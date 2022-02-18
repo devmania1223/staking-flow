@@ -28,6 +28,11 @@ import * as scripts from "./api/scripts.js"
 import * as transactions from "./api/transactions.js"
 
 const theme = createTheme({
+  palette: {
+    primary:{
+      main: '#d0d0d0',
+    }
+  },
   typography: {
     fontFamily: [
       'Arial, sans-serif', 
@@ -51,10 +56,8 @@ export default function Home() {
     return (
       <div>
         <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
-          <Typography variant="h6" component="div" sx={{ my: 2, color: 'white', display: 'block' }} >
-            Address: {user?.addr ?? "No Address"}
-          </Typography>
-          <Button color="inherit" onClick={fcl.unauthenticate} sx={{ my: 2, color: 'white', display: 'block' }} >Log Out</Button>
+          <Button color="inherit" sx={{ my: 2, display: 'block' }} >{user?.addr ?? "No Address"}</Button>
+          <Button color="inherit" onClick={fcl.unauthenticate} sx={{ my: 2, display: 'block' }} >Log Out</Button>
         </Box>
       </div>
     )
@@ -155,7 +158,7 @@ export default function Home() {
           <AppBar position="static">
             <Toolbar>
               <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                sFlow Staking
+                Flow Staking
               </Typography>
               {user.loggedIn
               ? <AuthedState />
@@ -170,17 +173,19 @@ export default function Home() {
             <Container maxWidth="sm">
               <Typography
                 component="h1"
-                variant="h2"
+                variant="h4"
                 align="center"
                 color="text.primary"
                 gutterBottom
               >
                 Stake Flow
               </Typography>
-              <Typography variant="h5" align="center" color="text.secondary" paragraph>
+              <Typography variant="h6" align="center" color="text.secondary" paragraph>
                 Stake Flow and receive sFlow while staking
               </Typography>
 
+            </Container>
+            <Container component="main" maxWidth="sm" sx={{ mb: 4 }}>
               <Stack
                 sx={{ pt: 4 }}
                 direction="row"
@@ -189,32 +194,30 @@ export default function Home() {
               >
                 <MUISwitch onChange={switchMode} />
               </Stack>
+              <Paper variant="outlined" sx={{ my: { xs: 1, md: 2 }, p: { xs: 2, md: 3 } }}>
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <TextField fullWidth value={stakeAmount || ''} label="Amount" color="secondary" onChange={updateStakeAmount} focused />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography>CurrentPrice: {currentPrice}</Typography>
+                    <Divider></Divider>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography>FlowBalance: {currentFlowBalance}</Typography>
+                    <Divider></Divider>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography>sFlowBalance: {currentsFlowBalance}</Typography>
+                    <Divider></Divider>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Button color="inherit" fullWidth onClick={submit} className="">{!currentMode ? "Stake" : "Unstake"}</Button>
+                  </Grid>
+                </Grid>
+              </Paper>
             </Container>
-            <Container component="main" maxWidth="sm" sx={{ mb: 4 }}>
-            <Paper variant="outlined" sx={{ my: { xs: 3, md: 6 }, p: { xs: 2, md: 3 } }}>
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <TextField fullWidth value={stakeAmount || ''} label="Amount" color="secondary" onChange={updateStakeAmount} focused />
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography>CurrentPrice: {currentPrice}</Typography>
-                  <Divider></Divider>
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography>FlowBalance: {currentFlowBalance}</Typography>
-                  <Divider></Divider>
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography>sFlowBalance: {currentsFlowBalance}</Typography>
-                  <Divider></Divider>
-                </Grid>
-                <Grid item xs={12}>
-                  <Button fullWidth onClick={submit} className="">{!currentMode ? "Stake" : "Unstake"}</Button>
-                </Grid>
-              </Grid>
-            </Paper>
-          </Container>
-        </Box>
+          </Box>
         </main>
 
         <footer>

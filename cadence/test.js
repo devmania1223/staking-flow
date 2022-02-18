@@ -84,10 +84,7 @@ const main = async () => {
   const FlowEpochName = "FlowEpoch";
   const FlowEpochAddress = await getAccountAddress("FlowEpoch");
   const FlowEpochAddressMap = {FlowToken: FlowTokenAddress, FungibleToken: FungibleTokenAddress, FlowIDTableStaking: FlowIDTableStakingAddress, FlowFees: FlowFeesAddress, FlowDKG: FlowDKGAddress, FlowClusterQC: FlowClusterQCAddress};
-  const FlowEpochArgs = [0, 70, 50, 2, 2, 0.00093871, "lolsoRandom",
-    [],
-    [],
-    []];
+  const FlowEpochArgs = [0, 70, 50, 2, 2, 0.00093871, "lolsoRandom", [], [], []];
   const result = await deployContractByName({ to: FlowEpochAddress, name: FlowEpochName, addressMap: FlowEpochAddressMap, args: FlowEpochArgs });
   console.log(result);
   const FlowEpochContractAddress = await getContractAddress(FlowEpochName);

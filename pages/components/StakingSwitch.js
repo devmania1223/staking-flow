@@ -4,20 +4,11 @@ import { styled } from '@mui/system';
 import { useSwitch } from '@mui/base/SwitchUnstyled';
 import Typography from '@mui/material/Typography';
 
-const blue = {
-  700: '#0059B2',
-};
-
-const grey = {
-  400: '#BFC7CF',
-  800: '#2F3A45',
-};
-
 const SwitchRoot = styled('span')`
   display: inline-block;
   position: relative;
-  width: 256px;
-  height: 72px;
+  width: 240px;
+  height: 60px;
 `;
 
 const SwitchInput = styled('input')`
@@ -35,15 +26,15 @@ const SwitchInput = styled('input')`
 const SwitchThumb = styled('span')`
   position: absolute;
   display: table;
-  background-color: ${blue[700]};
-  width: 120px;
-  height: 60px;
-  border-radius: 16px;
-  top: 6px;
-  left: 8px;
+  background-color: #ffffff;
+  width: 110px;
+  height: 52px;
+  border-radius: 8px;
+  top: 4px;
+  left: 5px;
   transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
   text-align: center;
-  line-height: 60px;
+  line-height: 52px;
 
 
   &.focusVisible {
@@ -57,22 +48,20 @@ const SwitchThumb = styled('span')`
 
 const SwitchTrack = styled('span')(
   ({ theme }) => `
-  background-color: ${theme.palette.mode === 'dark' ? grey[800] : grey[400]};
+  background-color: #BFC7CF;
   border-radius: 8px;
   width: 100%;
   height: 100%;
-  display: block;
-`,
+  display: block;`,
 );
 
 const SwitchContent = styled('span')(
   ({ theme }) => `
   display: table-cell;
   vertical-align: middle;
-  font-size: 32px;
+  font-size: 24px;
   font-family: Arial,sans-serif;
-  color: white;
-`,
+  color: black;`,
 );
 
 export default function MUISwitch(props) {

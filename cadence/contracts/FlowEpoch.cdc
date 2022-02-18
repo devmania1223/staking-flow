@@ -155,16 +155,7 @@ pub contract FlowEpoch {
         /// Group key is the last element at index: length - 1
         pub var dkgKeys: [String]
 
-        init(counter: UInt64,
-             seed: String,
-             startView: UInt64,
-             endView: UInt64,
-             stakingEndView: UInt64,
-             totalRewards: UFix64,
-             collectorClusters: [FlowClusterQC.Cluster],
-             clusterQCs: [FlowClusterQC.ClusterQC],
-             dkgKeys: [String]) {
-
+        init(counter: UInt64, seed: String, startView: UInt64, endView: UInt64, stakingEndView: UInt64, totalRewards: UFix64, collectorClusters: [FlowClusterQC.Cluster], clusterQCs: [FlowClusterQC.ClusterQC], dkgKeys: [String]) {
             self.counter = counter
             self.seed = seed
             self.startView = startView
@@ -795,16 +786,7 @@ pub contract FlowEpoch {
         return self.account.copy<Bool>(from: /storage/flowAutomaticRewardsEnabled) ?? false
     }
 
-    init (currentEpochCounter: UInt64,
-          numViewsInEpoch: UInt64, 
-          numViewsInStakingAuction: UInt64, 
-          numViewsInDKGPhase: UInt64, 
-          numCollectorClusters: UInt16,
-          FLOWsupplyIncreasePercentage: UFix64,
-          randomSource: String,
-          collectorClusters: [FlowClusterQC.Cluster],
-          clusterQCs: [FlowClusterQC.ClusterQC],
-          dkgPubKeys: [String]) {
+    init (currentEpochCounter: UInt64, numViewsInEpoch: UInt64, numViewsInStakingAuction: UInt64, numViewsInDKGPhase: UInt64, numCollectorClusters: UInt16, FLOWsupplyIncreasePercentage: UFix64, randomSource: String, collectorClusters: [ FlowClusterQC.Cluster ], clusterQCs: [ FlowClusterQC.ClusterQC ], dkgPubKeys: [ String ]) {
         pre {
             FlowEpoch.isValidPhaseConfiguration(numViewsInStakingAuction, numViewsInDKGPhase, numViewsInEpoch):
                 "Invalid startView and endView configuration"
@@ -832,15 +814,15 @@ pub contract FlowEpoch {
 
         let currentBlock = getCurrentBlock()
 
-        let firstEpochMetadata = EpochMetadata(counter: self.currentEpochCounter,
-                    seed: randomSource,
-                    startView: currentBlock.view,
-                    endView: currentBlock.view + self.configurableMetadata.numViewsInEpoch - (1 as UInt64),
-                    stakingEndView: currentBlock.view + self.configurableMetadata.numViewsInStakingAuction - (1 as UInt64),
-                    totalRewards: FlowIDTableStaking.getEpochTokenPayout(),
-                    collectorClusters: collectorClusters,
-                    clusterQCs: clusterQCs,
-                    dkgKeys: dkgPubKeys)
+        let firstEpochMetadata = EpochMetadata(counter: self.currentEpochCounter, 
+                    seed: randomSource, 
+                    startView: currentBlock.view, 
+                    endView: currentBlock.view + self.configurableMetadata.numViewsInEpoch - (1 as UInt64), 
+                    stakingEndView: currentBlock.view + self.configurableMetadata.numViewsInStakingAuction - (1 as UInt64), 
+                    totalRewards: FlowIDTableStaking.getEpochTokenPayout(), 
+                    collectorClusters: collectorClusters, 
+                    clusterQCs: clusterQCs, 
+                    dkgKeys: dkgPubKeys )
         self.saveEpochMetadata(firstEpochMetadata)
     }
 }
