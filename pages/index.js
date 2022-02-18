@@ -56,8 +56,8 @@ export default function Home() {
     return (
       <div>
         <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
-          <Button color="inherit" sx={{ my: 2, display: 'block' }} >{user?.addr ?? "No Address"}</Button>
-          <Button color="inherit" onClick={fcl.unauthenticate} sx={{ my: 2, display: 'block' }} >Log Out</Button>
+          <Button color="inherit" variant="outlined" sx={{ my: 2, display: 'block' }} >{user?.addr ?? "No Address"}</Button>
+          <Button color="inherit" variant="contained" onClick={fcl.unauthenticate} sx={{ my: 2, display: 'block' }}  style={{marginLeft: "10px"}} >Log Out</Button>
         </Box>
       </div>
     )
@@ -66,8 +66,8 @@ export default function Home() {
   const UnauthenticatedState = () => {
     return (
       <div>
-        <Button color="inherit" onClick={fcl.logIn}>Log In</Button>
-        <Button color="inherit" onClick={fcl.signUp}>Sign Up</Button>
+        <Button color="inherit" variant="outlined" onClick={fcl.logIn}>Log In</Button>
+        <Button color="inherit" variant="contained" onClick={fcl.signUp} style={{marginLeft: "10px"}}>Sign Up</Button>
       </div>
     )
   }
@@ -154,19 +154,19 @@ export default function Home() {
           <link rel="icon" href="/favicon.ico" />
         </Head>
 
-        <Container>
           <AppBar position="static">
-            <Toolbar>
-              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                Flow Staking
-              </Typography>
-              {user.loggedIn
-              ? <AuthedState />
-              : <UnauthenticatedState />
-              }
-            </Toolbar>
+            <Container>
+              <Toolbar>
+                <Typography variant="h6" component="div" sx={{ flexGrow: 1 }} style={{fontWeight: 900, textTransform: "uppercase"}}>
+                  Flow Staking
+                </Typography>
+                {user.loggedIn
+                ? <AuthedState />
+                : <UnauthenticatedState />
+                }
+              </Toolbar>
+            </Container>
           </AppBar>
-        </Container>
 
         <main>
           <Box sx={{ pt: 4, pb: 0 }}>
@@ -175,19 +175,18 @@ export default function Home() {
                 component="h1"
                 variant="h4"
                 align="center"
-                color="text.primary"
                 gutterBottom
+                style={{fontWeight: "900", color: "#333"}}
               >
                 Stake Flow
               </Typography>
-              <Typography variant="h6" align="center" color="text.secondary" paragraph>
+              <Typography variant="subtitle1" align="center" color="text.secondary" paragraph>
                 Stake Flow and receive sFlow while staking
               </Typography>
 
             </Container>
             <Container component="main" maxWidth="sm" sx={{ mb: 4 }}>
               <Stack
-                sx={{ pt: 4 }}
                 direction="row"
                 spacing={2}
                 justifyContent="center"
@@ -200,19 +199,49 @@ export default function Home() {
                     <TextField fullWidth value={stakeAmount || ''} label="Amount" color="secondary" onChange={updateStakeAmount} focused />
                   </Grid>
                   <Grid item xs={12}>
-                    <Typography>CurrentPrice: {currentPrice}</Typography>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      spacing={2}
+                    >
+                      <Typography style={{fontSize: "14px"}}>CurrentPrice:
+                      </Typography>
+                      <Typography style={{fontSize: "16px", fontWeight: 600}}>{currentPrice}
+                      </Typography>
+                    </Stack>
                     <Divider></Divider>
                   </Grid>
                   <Grid item xs={12}>
-                    <Typography>FlowBalance: {currentFlowBalance}</Typography>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      spacing={2}
+                    >
+                      <Typography style={{fontSize: "14px"}}>FlowBalance:
+                      </Typography>
+                      <Typography style={{fontSize: "16px", fontWeight: 600}}>{currentFlowBalance}
+                      </Typography>
+                    </Stack>
                     <Divider></Divider>
                   </Grid>
                   <Grid item xs={12}>
-                    <Typography>sFlowBalance: {currentsFlowBalance}</Typography>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      spacing={2}
+                    >
+                      <Typography style={{fontSize: "14px"}}>sFlowBalance:
+                      </Typography>
+                      <Typography style={{fontSize: "16px", fontWeight: 600}}>{currentsFlowBalance}
+                      </Typography>
+                    </Stack>
                     <Divider></Divider>
                   </Grid>
                   <Grid item xs={12}>
-                    <Button color="inherit" fullWidth onClick={submit} className="">{!currentMode ? "Stake" : "Unstake"}</Button>
+                    <Button color="inherit" variant="outlined" fullWidth onClick={submit} style={{fontSize: "16px", fontWeight: 600}}>{!currentMode ? "Stake" : "Unstake"}</Button>
                   </Grid>
                 </Grid>
               </Paper>

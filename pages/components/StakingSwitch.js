@@ -28,13 +28,13 @@ const SwitchThumb = styled('span')`
   display: table;
   background-color: #ffffff;
   width: 110px;
-  height: 52px;
-  border-radius: 8px;
-  top: 4px;
-  left: 5px;
+  height: 40px;
+  border-radius: 20px;
+  top: 10px;
+  left: 10px;
   transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
   text-align: center;
-  line-height: 52px;
+  line-height: 40px;
 
 
   &.focusVisible {
@@ -42,14 +42,14 @@ const SwitchThumb = styled('span')`
   }
 
   &.checked {
-    transform: translateX(120px);
+    transform: translateX(110px);
   }
 `;
 
 const SwitchTrack = styled('span')(
   ({ theme }) => `
   background-color: #BFC7CF;
-  border-radius: 8px;
+  border-radius: 30px;
   width: 100%;
   height: 100%;
   display: block;`,
@@ -59,9 +59,10 @@ const SwitchContent = styled('span')(
   ({ theme }) => `
   display: table-cell;
   vertical-align: middle;
-  font-size: 24px;
+  font-size: 16px;
   font-family: Arial,sans-serif;
-  color: black;`,
+  color: #333;
+  font-weight: 600;`,
 );
 
 export default function MUISwitch(props) {
