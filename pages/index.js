@@ -196,7 +196,19 @@ export default function Home() {
               <Paper variant="outlined" sx={{ my: { xs: 1, md: 2 }, p: { xs: 2, md: 3 } }}>
                 <Grid container spacing={3}>
                   <Grid item xs={12}>
-                    <TextField fullWidth value={stakeAmount || ''} label="Amount" color="secondary" onChange={updateStakeAmount} focused />
+                    <TextField 
+                      fullWidth 
+                      value={stakeAmount || ''} 
+                      label="Amount" 
+                      color="secondary" 
+                      onChange={updateStakeAmount} 
+                      focused 
+                      type="number"
+                      min={0}
+                      InputLabelProps={{
+                        shrink: true,
+                      }}
+                      variant="standard"/>
                   </Grid>
                   <Grid item xs={12}>
                     <Stack
