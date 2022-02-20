@@ -622,6 +622,7 @@ pub contract FlowStakingCollection {
                     let delegatingVault <- self.unlockedVault.borrow()!.withdraw(amount: amount)
                     destroy delegatingVault
                     info.tokensCommitted = info.tokensCommitted + amount
+                    self.delegationInfo.remove(at: index)
                     self.delegationInfo.insert(at: index, info)
                     return
                 }
@@ -639,6 +640,7 @@ pub contract FlowStakingCollection {
                 if(info.nodeID == nodeID && info.id == delegatorID){
                     info.tokensUnstaked = info.tokensUnstaked - amount
                     info.tokensCommitted = info.tokensCommitted + amount
+                    self.delegationInfo.remove(at: index)
                     self.delegationInfo.insert(at: index, info)
                     return
                 }
@@ -656,6 +658,7 @@ pub contract FlowStakingCollection {
                 if(info.nodeID == nodeID && info.id == delegatorID){
                     info.tokensRewarded = info.tokensRewarded - amount
                     info.tokensCommitted = info.tokensCommitted + amount
+                    self.delegationInfo.remove(at: index)
                     self.delegationInfo.insert(at: index, info)
                     return
                 }
@@ -672,6 +675,7 @@ pub contract FlowStakingCollection {
             for info in self.delegationInfo{
                 if(info.nodeID == nodeID && info.id == delegatorID){
                     info.tokensRequestedToUnstake = info.tokensRequestedToUnstake + amount
+                    self.delegationInfo.remove(at: index)
                     self.delegationInfo.insert(at: index, info)
                     return
                 }
@@ -713,6 +717,7 @@ pub contract FlowStakingCollection {
                     } else {
                         info.tokensUnstaked = info.tokensUnstaked - amount
                     }
+                    self.delegationInfo.remove(at: index)
                     self.delegationInfo.insert(at: index, info)
                     return
                 }
@@ -731,6 +736,7 @@ pub contract FlowStakingCollection {
                     info.tokensStaked = info.tokensStaked - info.tokensRequestedToUnstake
                     info.tokensUnstaking = info.tokensRequestedToUnstake
                     info.tokensRequestedToUnstake = 0.0
+                    self.delegationInfo.remove(at: index)
                     self.delegationInfo.insert(at: index, info)
                     index = index + 1
                 }
@@ -741,6 +747,7 @@ pub contract FlowStakingCollection {
             var index = 0
             for info in self.delegationInfo {
                 info.tokensRewarded = info.tokensStaked * 0.1
+                self.delegationInfo.remove(at: index)
                 self.delegationInfo.insert(at: index, info)
                 index = index + 1
             }
@@ -765,6 +772,7 @@ pub contract FlowStakingCollection {
                     } else {
                         info.tokensRewarded = info.tokensRewarded - amount
                     }
+                    self.delegationInfo.remove(at: index)
                     self.delegationInfo.insert(at: index, info)
                     return
                 }

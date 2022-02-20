@@ -307,7 +307,7 @@ pub contract sFlowStakingManager {
             }
         }
 
-        if(sFlowStakingManager.prevNodeID != "") {
+        if(sFlowStakingManager.prevNodeID != ""  && FlowIDTableStaking.stakingEnabled()) {
             let delegatingInfo = sFlowStakingManager.getPrevDelegatorInfo()
             let stakingCollectionRef: &FlowStakingCollection.StakingCollection = sFlowStakingManager.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
                 ?? panic("Could not borrow ref to StakingCollection")
