@@ -113,7 +113,7 @@ const main = async () => {
   txCode = await getTemplate("./transactions/stakingCollection/register_delegator.cdc",
   {FlowStakingCollection: FlowStakingCollectionAddress});
   [tx, error] = await sendTransaction({code: txCode, signers: [sFlowTokenAddress], args: ["First_Node", 500.0]});
-  console.log("Delegation to " + "First_Node" + "is Registered with " + 500.0 + "Flows" );
+  console.log("Delegation to " + "First_Node" + " is Registered with " + 500.0 + "Flows" );
 
   txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
   {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
@@ -311,6 +311,239 @@ const main = async () => {
   {sFlowStakingManager: sFlowStakingManagerAddress});
   [tx, error] = await executeScript({code: txCode, args: []});
   console.log("Current sFlow Price is", { tx });
+
+  txCode = await getTemplate("./transactions/stakingManager/unstake.cdc",
+  {sFlowToken: sFlowTokenAddress, sFlowStakingManager: sFlowStakingManagerAddress});
+  [tx, error] = await sendTransaction({code: txCode, signers: [user1Address], args: [30.0]});
+  console.log("user1 request to unstake 30.0 sFlow to the platform")
+
+  txCode = await getTemplate("./transactions/stakingManager/scripts/get_requested_unstake_amount.cdc",
+  {});
+  [tx, error] = await executeScript({code: txCode, args: [user1Address]});
+  console.log("user1's current requested unstake amount is " + tx)
+
+  txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
+  {});
+  [tx, error] = await executeScript({code: txCode, args: [user1Address]});
+  console.log("user1's Flow balance is " + tx)
+
+  txCode = await getTemplate("./transactions/sFlowToken/scripts/get_sFlow_balance.cdc",
+  {sFlowToken: sFlowTokenAddress});
+  [tx, error] = await executeScript({code: txCode, args: [user1Address]});
+  console.log("user1's sFlow balance is " + tx)
+
+  txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
+  {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
+  console.log("Current Delegating Info is", { tx });
+  txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
+  {});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
+  console.log("Current Pool balance is " + tx)
+
+  txCode = await getTemplate("./transactions/idTableStaking/admin/start_staking.cdc",
+  {FlowIDTableStaking: FlowIDTableStakingAddress});
+  [tx, error] = await sendTransaction({code: txCode, signers: [FlowIDTableStakingAddress], args: []});
+  console.log("Staking Auction Started");
+
+  await mintFlow(user2Address, "1000.0");
+  txCode = await getTemplate("./transactions/stakingManager/stake.cdc",
+  {sFlowToken: sFlowTokenAddress, sFlowStakingManager: sFlowStakingManagerAddress});
+  [tx, error] = await sendTransaction({code: txCode, signers: [user2Address], args: [70.0]});
+  console.log("user2 staked 70.0 Flow to the platform")
+
+  txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
+  {});
+  [tx, error] = await executeScript({code: txCode, args: [user2Address]});
+  console.log("user2's Flow balance is " + tx)
+
+  txCode = await getTemplate("./transactions/sFlowToken/scripts/get_sFlow_balance.cdc",
+  {sFlowToken: sFlowTokenAddress});
+  [tx, error] = await executeScript({code: txCode, args: [user2Address]});
+  console.log("user2's sFlow balance is " + tx)
+
+  txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
+  {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
+  console.log("Current Delegating Info is", { tx });
+  txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
+  {});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
+  console.log("Current Pool balance is " + tx)
+
+  txCode = await getTemplate("./transactions/stakingManager/manage_collection.cdc",
+  {sFlowStakingManager: sFlowStakingManagerAddress});
+  [tx, error] = await sendTransaction({code: txCode, signers: [managerAddress], args: []});
+  console.log("manager managed collection");
+
+  txCode = await getTemplate("./transactions/stakingManager/scripts/get_requested_unstake_amount.cdc",
+  {});
+  [tx, error] = await executeScript({code: txCode, args: [user1Address]});
+  console.log("user1's current requested unstake amount is " + tx)
+
+  txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
+  {});
+  [tx, error] = await executeScript({code: txCode, args: [user1Address]});
+  console.log("user1's Flow balance is " + tx)
+
+  txCode = await getTemplate("./transactions/sFlowToken/scripts/get_sFlow_balance.cdc",
+  {sFlowToken: sFlowTokenAddress});
+  [tx, error] = await executeScript({code: txCode, args: [user1Address]});
+  console.log("user1's sFlow balance is " + tx)
+
+  txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
+  {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
+  console.log("Current Delegating Info is", { tx });
+  txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
+  {});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
+  console.log("Current Pool balance is " + tx)
+
+  txCode = await getTemplate("./transactions/stakingCollection/register_delegator.cdc",
+  {FlowStakingCollection: FlowStakingCollectionAddress});
+  [tx, error] = await sendTransaction({code: txCode, signers: [sFlowTokenAddress], args: ["Second_Node", 5.0]});
+  console.log("Delegation to " + "Second_Node" + " is Registered with " + 5.0 + "Flows" );
+
+  txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
+  {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
+  console.log("Current Delegating Info is", { tx });
+  txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
+  {});
+
+  txCode = await getTemplate("./transactions/stakingManager/set_new_delegator.cdc",
+  {sFlowStakingManager: sFlowStakingManagerAddress});
+  [tx, error] = await sendTransaction({code: txCode, signers: [user1Address], args: ["Second_Node", 2]});
+  console.log("user1 attempt to change delegation node and failed with this error", {error});
+
+  txCode = await getTemplate("./transactions/stakingManager/set_new_delegator.cdc",
+  {sFlowStakingManager: sFlowStakingManagerAddress});
+  [tx, error] = await sendTransaction({code: txCode, signers: [managerAddress], args: ["Second_Node", 2]});
+  console.log("manager change delegation node");
+
+  txCode = await getTemplate("./transactions/stakingManager/stake.cdc",
+  {sFlowToken: sFlowTokenAddress, sFlowStakingManager: sFlowStakingManagerAddress});
+  [tx, error] = await sendTransaction({code: txCode, signers: [user1Address], args: [100.0]});
+  console.log("user1 staked 100 Flow to the platform")
+
+  txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
+  {});
+  [tx, error] = await executeScript({code: txCode, args: [user1Address]});
+  console.log("user1's Flow balance is " + tx)
+
+  txCode = await getTemplate("./transactions/sFlowToken/scripts/get_sFlow_balance.cdc",
+  {sFlowToken: sFlowTokenAddress});
+  [tx, error] = await executeScript({code: txCode, args: [user1Address]});
+  console.log("user1's sFlow balance is " + tx)
+
+  txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
+  {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
+  console.log("Current Delegating Info is", { tx });
+  txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
+  {});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
+  console.log("Current Pool balance is " + tx)
+
+  txCode = await getTemplate("./transactions/stakingManager/manage_collection.cdc",
+  {sFlowStakingManager: sFlowStakingManagerAddress});
+  [tx, error] = await sendTransaction({code: txCode, signers: [managerAddress], args: []});
+  console.log("manager managed collection");
+
+  txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
+  {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
+  console.log("Current Delegating Info is", { tx });
+  txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
+  {});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
+  console.log("Current Pool balance is " + tx)
+
+  txCode = await getTemplate("./transactions/idTableStaking/admin/end_staking.cdc",
+  {FlowIDTableStaking: FlowIDTableStakingAddress});
+  [tx, error] = await sendTransaction({code: txCode, signers: [FlowIDTableStakingAddress], args: []});
+  console.log("Staking Auction Ended");
+
+  txCode = await getTemplate("./transactions/stakingCollection/process_staking.cdc",
+  {FlowStakingCollection: FlowStakingCollectionAddress});
+  [tx, error] = await sendTransaction({code: txCode, signers: [sFlowTokenAddress], args: []});
+  console.log("Epoch updated delegation info");
+
+  txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
+  {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
+  console.log("Current Delegating Info is", { tx });
+  txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
+  {});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
+  console.log("Current Pool balance is " + tx)
+
+  txCode = await getTemplate("./transactions/stakingCollection/process_staking.cdc",
+  {FlowStakingCollection: FlowStakingCollectionAddress});
+  [tx, error] = await sendTransaction({code: txCode, signers: [sFlowTokenAddress], args: []});
+  console.log("Epoch updated delegation info");
+
+  txCode = await getTemplate("./transactions/stakingCollection/give_reward.cdc",
+  {FlowStakingCollection: FlowStakingCollectionAddress});
+  [tx, error] = await sendTransaction({code: txCode, signers: [sFlowTokenAddress], args: []});
+  console.log("Epoch gave reward");
+
+  txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
+  {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
+  console.log("Current Delegating Info is", { tx });
+  txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
+  {});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
+  console.log("Current Pool balance is " + tx)
+
+  txCode = await getTemplate("./transactions/idTableStaking/admin/start_staking.cdc",
+  {FlowIDTableStaking: FlowIDTableStakingAddress});
+  [tx, error] = await sendTransaction({code: txCode, signers: [FlowIDTableStakingAddress], args: []});
+  console.log("Staking Auction Started");
+
+  txCode = await getTemplate("./transactions/stakingManager/manage_collection.cdc",
+  {sFlowStakingManager: sFlowStakingManagerAddress});
+  [tx, error] = await sendTransaction({code: txCode, signers: [managerAddress], args: []});
+  console.log("manager managed collection");
+
+  txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
+  {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
+  console.log("Current Delegating Info is", { tx });
+  txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
+  {});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
+  console.log("Current Pool balance is " + tx)
+
+  txCode = await getTemplate("./transactions/stakingManager/manage_collection.cdc",
+  {sFlowStakingManager: sFlowStakingManagerAddress});
+  [tx, error] = await sendTransaction({code: txCode, signers: [managerAddress], args: []});
+  console.log("manager managed collection");
+
+  txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
+  {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
+  console.log("Current Delegating Info is", { tx });
+  txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
+  {});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
+  console.log("Current Pool balance is " + tx)
+
+  txCode = await getTemplate("./transactions/stakingManager/manage_collection.cdc",
+  {sFlowStakingManager: sFlowStakingManagerAddress});
+  [tx, error] = await sendTransaction({code: txCode, signers: [managerAddress], args: []});
+  console.log("manager managed collection");
+
+  txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
+  {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
+  console.log("Current Delegating Info is", { tx });
+  txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
+  {});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
+  console.log("Current Pool balance is " + tx)
 
   await emulator.stop();
 };
