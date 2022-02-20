@@ -95,6 +95,8 @@ pub contract FlowStakingCollection {
     /// different types of tokens
     pub resource StakingCollection: StakingCollectionPublic {
 
+        access(self) var delegationInfo: [FlowIDTableStaking.DelegatorInfo]
+
         /// unlocked vault
         access(self) var unlockedVault: Capability<&FlowToken.Vault>
 
@@ -125,6 +127,7 @@ pub contract FlowStakingCollection {
             pre {
                 unlockedVault.check(): "Invalid FlowToken.Vault capability"
             }
+            self.delegationInfo = []
             self.unlockedVault = unlockedVault
 
             self.nodeStakers <- {}
@@ -559,22 +562,11 @@ pub contract FlowStakingCollection {
 
         /// Function to register a new Delegator Record to the Staking Collection
         pub fun registerDelegator(nodeID: String, amount: UFix64) {
-            let delegatorIDs = self.getDelegatorIDs()
-            for idInfo in delegatorIDs {
-                if idInfo.delegatorNodeID == nodeID { 
-                    panic("Cannot register a delegator for a node that is already being delegated to")
-                }
-            }
-            
-            let tokens <- self.getTokens(amount: amount)
-
-            let nodeDelegator <- FlowIDTableStaking.registerNewDelegator(nodeID: nodeID)
-
-            nodeDelegator.delegateNewTokens(from: <- tokens)
-
-            emit DelegatorAddedToStakingCollection(nodeID: nodeDelegator.nodeID, delegatorID: nodeDelegator.id, amountCommitted: amount, address: self.owner?.address)
-
-            self.nodeDelegators[nodeDelegator.nodeID] <-! nodeDelegator
+            var info: FlowIDTableStaking.DelegatorInfo = FlowIDTableStaking.DelegatorInfo(nodeID: nodeID, delegatorID: UInt32(self.delegationInfo.length + Int(1)))
+            let delegatingVault <- self.unlockedVault.borrow()!.withdraw(amount: amount)
+            destroy delegatingVault
+            info.tokensCommitted = amount
+            self.delegationInfo.append(info)
         }
 
         /// Borrows a reference to a node in the collection
@@ -621,115 +613,69 @@ pub contract FlowStakingCollection {
 
         /// Function to stake new tokens for an existing Stake or Delegation record in the StakingCollection
         pub fun stakeNewTokens(nodeID: String, delegatorID: UInt32?, amount: UFix64) {
-            pre {
-                self.doesStakeExist(nodeID: nodeID, delegatorID: delegatorID): "Specified stake does not exist in this collection"
+            if(FlowIDTableStaking.stakingEnabled() == false){
+                panic("Could not stake outside of the auction period")
             }
-
-            // If staking as a delegator, use the delegate functionality
-            if let delegatorID = delegatorID {       
-                // If the delegator is stored in the collection, borrow it         
-                if let delegator = self.borrowDelegator(nodeID: nodeID, delegatorID: delegatorID) {
-                    delegator.delegateNewTokens(from: <- self.getTokens(amount: amount))
-                } else {
-                    let tokenHolder = self.tokenHolder!.borrow()!
-
-                    // Get any needed unlocked tokens, and deposit them to the locked vault.
-                    let lockedBalance = self.lockedVault!.borrow()!.balance - FlowStorageFees.minimumStorageReservation
-                    if (amount > lockedBalance) {
-                        let numUnlockedTokensToUse = amount - lockedBalance
-                        tokenHolder.deposit(from: <- self.unlockedVault.borrow()!.withdraw(amount: numUnlockedTokensToUse))
-                    }   
-
-                    // Use the delegator stored in the locked account
-                    let delegator = tokenHolder.borrowDelegator()
-                    delegator.delegateNewTokens(amount: amount)
+            var index = 0
+            for info in self.delegationInfo{
+                if(info.nodeID == nodeID && info.id == delegatorID){
+                    let delegatingVault <- self.unlockedVault.borrow()!.withdraw(amount: amount)
+                    destroy delegatingVault
+                    info.tokensCommitted = info.tokensCommitted + amount
+                    self.delegationInfo.insert(at: index, info)
+                    return
                 }
-
-            // If the node is stored in the collection, borrow it 
-            } else if let node = self.borrowNode(nodeID) {
-                node.stakeNewTokens(<-self.getTokens(amount: amount))
-            } else {
-                // Get any needed unlocked tokens, and deposit them to the locked vault.
-                let lockedBalance = self.lockedVault!.borrow()!.balance - FlowStorageFees.minimumStorageReservation
-                if (amount > lockedBalance) {
-                    let numUnlockedTokensToUse = amount - lockedBalance
-                    self.tokenHolder!.borrow()!.deposit(from: <- self.unlockedVault.borrow()!.withdraw(amount: numUnlockedTokensToUse))
-                } 
-
-                // Use the staker stored in the locked account
-                let staker = self.tokenHolder!.borrow()!.borrowStaker()
-                staker.stakeNewTokens(amount: amount)
+                index = index + 1
             }
         }
 
         /// Function to stake unstaked tokens for an existing Stake or Delegation record in the StakingCollection
         pub fun stakeUnstakedTokens(nodeID: String, delegatorID: UInt32?, amount: UFix64) {
-            pre {
-                self.doesStakeExist(nodeID: nodeID, delegatorID: delegatorID): "Specified stake does not exist in this collection"
+            if(FlowIDTableStaking.stakingEnabled() == false){
+                panic("Could not stake outside of the auction period")
             }
-
-            if let delegatorID = delegatorID {
-                if let delegator = self.borrowDelegator(nodeID: nodeID, delegatorID: delegatorID) {
-                    delegator.delegateUnstakedTokens(amount: amount)
-
-                } else {
-                    let delegator = self.tokenHolder!.borrow()!.borrowDelegator()
-                    delegator.delegateUnstakedTokens(amount: amount)
+            var index = 0
+            for info in self.delegationInfo{
+                if(info.nodeID == nodeID && info.id == delegatorID){
+                    info.tokensUnstaked = info.tokensUnstaked - amount
+                    info.tokensCommitted = info.tokensCommitted + amount
+                    self.delegationInfo.insert(at: index, info)
+                    return
                 }
-            } else if let node = self.borrowNode(nodeID) {
-                node.stakeUnstakedTokens(amount: amount)
-            } else {
-                let staker = self.tokenHolder!.borrow()!.borrowStaker()
-                staker.stakeUnstakedTokens(amount: amount)
+                index = index + 1
             }
         }
 
         /// Function to stake rewarded tokens for an existing Stake or Delegation record in the StakingCollection
         pub fun stakeRewardedTokens(nodeID: String, delegatorID: UInt32?, amount: UFix64) {
-            pre {
-                self.doesStakeExist(nodeID: nodeID, delegatorID: delegatorID): "Specified stake does not exist in this collection"
+            if(FlowIDTableStaking.stakingEnabled() == false){
+                panic("Could not stake outside of the auction period")
             }
-
-            if let delegatorID = delegatorID {
-                if let delegator = self.borrowDelegator(nodeID: nodeID, delegatorID: delegatorID) {
-                    // We add the amount to the unlocked tokens used because rewards are newly minted tokens
-                    // and aren't immediately reflected in the tokens used fields
-                    self.unlockedTokensUsed = self.unlockedTokensUsed + amount
-                    delegator.delegateRewardedTokens(amount: amount)
-                } else {
-                    // Staking tokens in the locked account staking objects are not reflected in the tokens used fields,
-                    // so they are not updated here
-                    let delegator = self.tokenHolder!.borrow()!.borrowDelegator()
-                    delegator.delegateRewardedTokens(amount: amount)
+            var index = 0
+            for info in self.delegationInfo{
+                if(info.nodeID == nodeID && info.id == delegatorID){
+                    info.tokensRewarded = info.tokensRewarded - amount
+                    info.tokensCommitted = info.tokensCommitted + amount
+                    self.delegationInfo.insert(at: index, info)
+                    return
                 }
-            } else if let node = self.borrowNode(nodeID) {
-                self.unlockedTokensUsed = self.unlockedTokensUsed + amount
-                node.stakeRewardedTokens(amount: amount)
-            } else {
-                let staker = self.tokenHolder!.borrow()!.borrowStaker()
-                staker.stakeRewardedTokens(amount: amount)
+                index = index + 1
             }
         }
 
         /// Function to request tokens to be unstaked for an existing Stake or Delegation record in the StakingCollection
         pub fun requestUnstaking(nodeID: String, delegatorID: UInt32?, amount: UFix64) { 
-            pre {
-                self.doesStakeExist(nodeID: nodeID, delegatorID: delegatorID): "Specified stake does not exist in this collection"
+            if(FlowIDTableStaking.stakingEnabled() == false){
+                panic("Could not stake outside of the auction period")
             }
-
-            if let delegatorID = delegatorID {
-                if let delegator = self.borrowDelegator(nodeID: nodeID, delegatorID: delegatorID) {
-                    delegator.requestUnstaking(amount: amount)
-
-                } else {
-                    let delegator = self.tokenHolder!.borrow()!.borrowDelegator()
-                    delegator.requestUnstaking(amount: amount)
+            var index = 0
+            for info in self.delegationInfo{
+                if(info.nodeID == nodeID && info.id == delegatorID){
+                    info.tokensRequestedToUnstake = info.tokensRequestedToUnstake + amount
+                    self.delegationInfo.insert(at: index, info)
+                    return
                 }
-            } else if let node = self.borrowNode(nodeID) {
-                node.requestUnstaking(amount: amount)
-            } else {
-                let staker = self.tokenHolder!.borrow()!.borrowStaker()
-                staker.requestUnstaking(amount: amount)
+                index = index + 1
             }
         }
 
@@ -750,65 +696,79 @@ pub contract FlowStakingCollection {
 
         /// Function to withdraw unstaked tokens for an existing Stake or Delegation record in the StakingCollection
         pub fun withdrawUnstakedTokens(nodeID: String, delegatorID: UInt32?, amount: UFix64) { 
-            pre {
-                self.doesStakeExist(nodeID: nodeID, delegatorID: delegatorID): "Specified stake does not exist in this collection"
+            if(FlowIDTableStaking.stakingEnabled() == false){
+                panic("Could not stake outside of the auction period")
             }
+            var index = 0
+            for info in self.delegationInfo{
+                if(info.nodeID == nodeID && info.id == delegatorID){
+                    let vaultRef = FlowStakingCollection.account.borrow<&FlowToken.Vault>(from: /storage/flowTokenVault)
+                        ?? panic("Could not borrow reference to the owner's Vault!")
+                    let sentVault: @FungibleToken.Vault <- vaultRef.withdraw(amount: amount)
+                    self.unlockedVault.borrow()!.deposit(from: <- sentVault)
 
-            if let delegatorID = delegatorID {
-                if let delegator = self.borrowDelegator(nodeID: nodeID, delegatorID: delegatorID) {
-                    let tokens <- delegator.withdrawUnstakedTokens(amount: amount)
-                    self.depositTokens(from: <-tokens)
-                } else {
-                    let delegator = self.tokenHolder!.borrow()!.borrowDelegator()
-                    delegator.withdrawUnstakedTokens(amount: amount)
+                    if(info.tokensUnstaked < amount){
+                        info.tokensCommitted = info.tokensCommitted - (amount - info.tokensUnstaked)
+                        info.tokensUnstaked = 0.0
+                    } else {
+                        info.tokensUnstaked = info.tokensUnstaked - amount
+                    }
+                    self.delegationInfo.insert(at: index, info)
+                    return
                 }
-            } else if let node = self.borrowNode(nodeID) {
-                let tokens <- node.withdrawUnstakedTokens(amount: amount)
-                self.depositTokens(from: <-tokens)
-            } else {
-                let staker = self.tokenHolder!.borrow()!.borrowStaker()
-                staker.withdrawUnstakedTokens(amount: amount)
+                index = index + 1
+            }
+        }
+
+        pub fun processStaking() {
+            if(!FlowIDTableStaking.stakingEnabled()){
+                var index = 0
+                for info in self.delegationInfo {
+                    info.tokensStaked = info.tokensStaked + info.tokensCommitted
+                    info.tokensCommitted = 0.0
+                    info.tokensUnstaked = info.tokensUnstaking
+                    info.tokensUnstaking = 0.0
+                    info.tokensStaked = info.tokensStaked - info.tokensRequestedToUnstake
+                    info.tokensUnstaking = info.tokensRequestedToUnstake
+                    info.tokensRequestedToUnstake = 0.0
+                    self.delegationInfo.insert(at: index, info)
+                    index = index + 1
+                }
+            }
+        }
+
+        pub fun giveReward(){
+            var index = 0
+            for info in self.delegationInfo {
+                info.tokensRewarded = info.tokensStaked * 0.1
+                self.delegationInfo.insert(at: index, info)
+                index = index + 1
             }
         }
 
         /// Function to withdraw rewarded tokens for an existing Stake or Delegation record in the StakingCollection
         pub fun withdrawRewardedTokens(nodeID: String, delegatorID: UInt32?, amount: UFix64) {
-            pre {
-                self.doesStakeExist(nodeID: nodeID, delegatorID: delegatorID): "Specified stake does not exist in this collection"
+            if(FlowIDTableStaking.stakingEnabled() == false){
+                panic("Could not stake outside of the auction period")
             }
+            var index = 0
+            for info in self.delegationInfo{
+                if(info.nodeID == nodeID && info.id == delegatorID){
+                    let vaultRef = FlowStakingCollection.account.borrow<&FlowToken.Vault>(from: /storage/flowTokenVault)
+                        ?? panic("Could not borrow reference to the owner's Vault!")
+                    let sentVault: @FungibleToken.Vault <- vaultRef.withdraw(amount: amount)
+                    self.unlockedVault.borrow()!.deposit(from: <- sentVault)
 
-            if let delegatorID = delegatorID {
-                if let delegator = self.borrowDelegator(nodeID: nodeID, delegatorID: delegatorID) {
-                    // We update the unlocked tokens used field before withdrawing because 
-                    // rewards are newly minted and not immediately reflected in the tokens used fields
-                    self.unlockedTokensUsed = self.unlockedTokensUsed + amount
-
-                    let tokens <- delegator.withdrawRewardedTokens(amount: amount)
-
-                    self.depositTokens(from: <-tokens)
-                } else {
-                    let delegator = self.tokenHolder!.borrow()!.borrowDelegator()
-                    
-                    delegator.withdrawRewardedTokens(amount: amount)
-
-                    // move the unlocked rewards from the locked account to the unlocked account
-                    let unlockedRewards <- self.tokenHolder!.borrow()!.withdraw(amount: amount)
-                    self.unlockedVault.borrow()!.deposit(from: <-unlockedRewards)
+                    if(info.tokensRewarded < amount){
+                        info.tokensCommitted = info.tokensCommitted - (amount - info.tokensRewarded)
+                        info.tokensRewarded = 0.0
+                    } else {
+                        info.tokensRewarded = info.tokensRewarded - amount
+                    }
+                    self.delegationInfo.insert(at: index, info)
+                    return
                 }
-            } else if let node = self.borrowNode(nodeID) {
-                self.unlockedTokensUsed = self.unlockedTokensUsed + amount
-
-                let tokens <- node.withdrawRewardedTokens(amount: amount)
-
-                self.depositTokens(from: <-tokens)
-            } else {
-                let staker = self.tokenHolder!.borrow()!.borrowStaker()
-                
-                staker.withdrawRewardedTokens(amount: amount)
-
-                // move the unlocked rewards from the locked account to the unlocked account
-                let unlockedRewards <- self.tokenHolder!.borrow()!.withdraw(amount: amount)
-                self.unlockedVault.borrow()!.deposit(from: <-unlockedRewards)
+                index = index + 1
             }
         }
 
@@ -966,35 +926,7 @@ pub contract FlowStakingCollection {
 
         /// Function to get all Delegator Info records for all Delegation records in the StakingCollection
         pub fun getAllDelegatorInfo(): [FlowIDTableStaking.DelegatorInfo] {
-            let delegatorInfo: [FlowIDTableStaking.DelegatorInfo] = []
-
-            let nodeIDs: [String] = self.nodeDelegators.keys
-
-            for nodeID in nodeIDs {
-
-                let delegatorID = self.nodeDelegators[nodeID]?.id
-
-                let info = FlowIDTableStaking.DelegatorInfo(nodeID: nodeID, delegatorID: delegatorID!)
-
-                delegatorInfo.append(info)
-            }
-
-            if let tokenHolderCapability = self.tokenHolder {
-                let _tokenHolder = tokenHolderCapability.borrow()!
-
-                let tokenHolderDelegatorNodeID = _tokenHolder.getDelegatorNodeID()
-                let tokenHolderDelegatorID = _tokenHolder.getDelegatorID()
-
-                if let _tokenHolderDelegatorNodeID = tokenHolderDelegatorNodeID {
-                    if let _tokenHolderDelegatorID = tokenHolderDelegatorID {
-                        let info = FlowIDTableStaking.DelegatorInfo(nodeID: _tokenHolderDelegatorNodeID, delegatorID: _tokenHolderDelegatorID)
-
-                        delegatorInfo.append(info)
-                    }
-                }
-            }
-
-            return delegatorInfo
+            return self.delegationInfo
         }
 
         /// Gets a users list of machine account information

@@ -786,7 +786,7 @@ pub contract FlowEpoch {
         return self.account.copy<Bool>(from: /storage/flowAutomaticRewardsEnabled) ?? false
     }
 
-    init (currentEpochCounter: UInt64, numViewsInEpoch: UInt64, numViewsInStakingAuction: UInt64, numViewsInDKGPhase: UInt64, numCollectorClusters: UInt16, FLOWsupplyIncreasePercentage: UFix64, randomSource: String, collectorClusters: [ FlowClusterQC.Cluster ], clusterQCs: [ FlowClusterQC.ClusterQC ], dkgPubKeys: [ String ]) {
+    init (currentEpochCounter: UInt64, numViewsInEpoch: UInt64, numViewsInStakingAuction: UInt64, numViewsInDKGPhase: UInt64, numCollectorClusters: UInt16, FLOWsupplyIncreasePercentage: UFix64, randomSource: String) {
         pre {
             FlowEpoch.isValidPhaseConfiguration(numViewsInStakingAuction, numViewsInDKGPhase, numViewsInEpoch):
                 "Invalid startView and endView configuration"
@@ -820,9 +820,9 @@ pub contract FlowEpoch {
                     endView: currentBlock.view + self.configurableMetadata.numViewsInEpoch - (1 as UInt64), 
                     stakingEndView: currentBlock.view + self.configurableMetadata.numViewsInStakingAuction - (1 as UInt64), 
                     totalRewards: FlowIDTableStaking.getEpochTokenPayout(), 
-                    collectorClusters: collectorClusters, 
-                    clusterQCs: clusterQCs, 
-                    dkgKeys: dkgPubKeys )
+                    collectorClusters: [], 
+                    clusterQCs: [], 
+                    dkgKeys: [] )
         self.saveEpochMetadata(firstEpochMetadata)
     }
 }

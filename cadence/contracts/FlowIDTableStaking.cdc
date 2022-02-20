@@ -379,26 +379,24 @@ pub contract FlowIDTableStaking {
 
     /// Struct that can be returned to show all the info about a delegator
     pub struct DelegatorInfo {
-        pub let id: UInt32
-        pub let nodeID: String
-        pub let tokensCommitted: UFix64
-        pub let tokensStaked: UFix64
-        pub let tokensUnstaking: UFix64
-        pub let tokensRewarded: UFix64
-        pub let tokensUnstaked: UFix64
-        pub let tokensRequestedToUnstake: UFix64
+        pub(set) var id: UInt32
+        pub(set) var nodeID: String
+        pub(set) var tokensCommitted: UFix64
+        pub(set) var tokensStaked: UFix64
+        pub(set) var tokensUnstaking: UFix64
+        pub(set) var tokensRewarded: UFix64
+        pub(set) var tokensUnstaked: UFix64
+        pub(set) var tokensRequestedToUnstake: UFix64
 
         init(nodeID: String, delegatorID: UInt32) {
-            let nodeRecord = FlowIDTableStaking.borrowNodeRecord(nodeID)
-            let delegatorRecord = nodeRecord.borrowDelegatorRecord(delegatorID)
             self.id = delegatorID
             self.nodeID = nodeID
-            self.tokensCommitted = delegatorRecord.tokensCommitted.balance
-            self.tokensStaked = delegatorRecord.tokensStaked.balance
-            self.tokensUnstaking = delegatorRecord.tokensUnstaking.balance
-            self.tokensUnstaked = delegatorRecord.tokensUnstaked.balance
-            self.tokensRewarded = delegatorRecord.tokensRewarded.balance
-            self.tokensRequestedToUnstake = delegatorRecord.tokensRequestedToUnstake
+            self.tokensCommitted = 0.0
+            self.tokensStaked = 0.0
+            self.tokensUnstaking = 0.0
+            self.tokensRewarded = 0.0
+            self.tokensUnstaked = 0.0
+            self.tokensRequestedToUnstake = 0.0
         }
 
         pub fun totalTokensInRecord(): UFix64 {
@@ -790,14 +788,6 @@ pub contract FlowIDTableStaking {
         /// Ends the staking Auction by removing any unapproved nodes
         /// and setting stakingEnabled to false
         pub fun endStakingAuction() {
-            let approvedList = FlowIDTableStaking.getApprovedList()
-            let approvedNodeIDs: {String: Bool} = {}
-            for id in approvedList {
-                approvedNodeIDs[id] = true
-            }
-
-            self.removeUnapprovedNodes(approvedNodeIDs: approvedNodeIDs)
-
             FlowIDTableStaking.account.load<Bool>(from: /storage/stakingEnabled)
             FlowIDTableStaking.account.save(false, to: /storage/stakingEnabled)
         }
