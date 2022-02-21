@@ -73,13 +73,18 @@ pub contract sFlowStakingManager {
     pub fun getCurrentPrice() : UFix64{
         let amountInPool = self.getCurrentPoolAmount()
 
-        let delegatingInfo = self.getDelegatorInfo()
+        var amountInStaking = 0.0
 
-        let amountInStaking = delegatingInfo.tokensCommitted +
-            delegatingInfo.tokensStaked +
-            delegatingInfo.tokensUnstaking +
-            delegatingInfo.tokensRewarded +
-            delegatingInfo.tokensUnstaked;
+        let delegatingInfo = FlowStakingCollection.getAllDelegatorInfo(address: self.account.address);
+
+        for info in delegatingInfo {
+            amountInStaking = amountInStaking + 
+                info.tokensCommitted +
+                info.tokensStaked +
+                info.tokensUnstaking +
+                info.tokensRewarded +
+                info.tokensUnstaked
+        }
 
         if((amountInPool + amountInStaking) == 0.0 || sFlowToken.totalSupply == 0.0){
             return 1.0
@@ -91,7 +96,6 @@ pub contract sFlowStakingManager {
         let vault <- from as! @FlowToken.Vault
         let currentPrice: UFix64 = self.getCurrentPrice()
         let amount: UFix64 = vault.balance / currentPrice
-
 
         let managerFlowVault =  self.account
             .borrow<&FlowToken.Vault>(from: /storage/flowTokenVault)

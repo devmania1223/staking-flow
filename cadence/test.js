@@ -1,7 +1,17 @@
 import path from "path"
 import { config } from "@onflow/config";
 import { fileURLToPath } from 'url';
-import { init, emulator, deployContractByName, getContractAddress , getAccountAddress, getTemplate, sendTransaction, mintFlow, executeScript } from "flow-js-testing";
+import { init, 
+  emulator, 
+  deployContractByName, 
+  getContractAddress , 
+  getAccountAddress, 
+  getTemplate, 
+  sendTransaction, 
+  mintFlow, 
+  executeScript,  
+} from "flow-js-testing";
+import expect from "expect"
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -118,6 +128,7 @@ const main = async () => {
   txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
   {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
   [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
+  expect(Number.parseFloat(tx[0].tokensCommitted)).toBe(500.0);
   console.log("Current Delegating Info is", { tx });
 
   const sFlowTokenAddressMap = {FlowStakingCollection: FlowStakingCollectionAddress};
@@ -146,8 +157,6 @@ const main = async () => {
   [tx, error] = await sendTransaction({code: txCode, signers: [sFlowStakingManagerAddress], args: [managerAddress]});
   console.log("Give Admin Capability to Manager Account")
 
-  console.log("Contracts Initialized Successfullly!");
-
   const user1Address = await getAccountAddress("user1");
   await mintFlow(user1Address, "1000.0");
   const user2Address = await getAccountAddress("user2");
@@ -173,7 +182,9 @@ const main = async () => {
     [tx, error] = await sendTransaction({code: txCode, signers: [user2Address], args: []});
     console.log("user2's account is initialized");
   }
-  
+
+  console.log("Contracts Initialized Successfullly!");
+
   txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
   {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
   [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
@@ -191,16 +202,18 @@ const main = async () => {
   txCode = await getTemplate("./transactions/stakingManager/stake.cdc",
   {sFlowToken: sFlowTokenAddress, sFlowStakingManager: sFlowStakingManagerAddress});
   [tx, error] = await sendTransaction({code: txCode, signers: [user1Address], args: [100.0]});
-  console.log("user1 staked 100 Flow to the platform")
+  console.log("user1 staked 100 Flow to the platform", {error})
 
   txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
   {});
   [tx, error] = await executeScript({code: txCode, args: [user1Address]});
+  expect(Number.parseFloat(tx)).toBeCloseTo(1000.0 - 100.0, 1);
   console.log("user1's Flow balance is " + tx)
 
   txCode = await getTemplate("./transactions/sFlowToken/scripts/get_sFlow_balance.cdc",
   {sFlowToken: sFlowTokenAddress});
   [tx, error] = await executeScript({code: txCode, args: [user1Address]});
+  expect(Number.parseFloat(tx)).toBeCloseTo(100.0, 1);
   console.log("user1's sFlow balance is " + tx)
 
   txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
@@ -210,6 +223,7 @@ const main = async () => {
   txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
   {});
   [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
+  expect(Number.parseFloat(tx)).toBeCloseTo(100.0 + 500.0, 1);
   console.log("Current Pool balance is " + tx)
 
   txCode = await getTemplate("./transactions/stakingManager/stake.cdc",
@@ -234,10 +248,12 @@ const main = async () => {
   txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
   {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
   [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
+  expect(Number.parseFloat(tx[0].tokensCommitted)).toBeCloseTo(500.0 + 600.0 - 10.1, 1);
   console.log("Current Delegating Info is", { tx });
   txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
   {});
   [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
+  expect(Number.parseFloat(tx)).toBeCloseTo(10.1, 1);
   console.log("Current Pool balance is " + tx)
 
   txCode = await getTemplate("./transactions/idTableStaking/admin/end_staking.cdc",
@@ -253,11 +269,13 @@ const main = async () => {
   txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
   {});
   [tx, error] = await executeScript({code: txCode, args: [user1Address]});
+  expect(Number.parseFloat(tx)).toBeCloseTo(900.0 - 100.0, 1);
   console.log("user1's Flow balance is " + tx)
 
   txCode = await getTemplate("./transactions/sFlowToken/scripts/get_sFlow_balance.cdc",
   {sFlowToken: sFlowTokenAddress});
   [tx, error] = await executeScript({code: txCode, args: [user1Address]});
+  expect(Number.parseFloat(tx)).toBeCloseTo(100.0 + 100.0, 1);
   console.log("user1's sFlow balance is " + tx)
 
   txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
@@ -267,6 +285,7 @@ const main = async () => {
   txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
   {});
   [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
+  expect(Number.parseFloat(tx)).toBeCloseTo(10.1 + 100.0, 1);
   console.log("Current Pool balance is " + tx)
 
   txCode = await getTemplate("./transactions/stakingManager/manage_collection.cdc",
@@ -277,10 +296,12 @@ const main = async () => {
   txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
   {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
   [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
+  let tokensCommitted = tx[0].tokensCommitted;
   console.log("Current Delegating Info is", { tx });
   txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
   {});
   [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
+  let tokensInPool = tx;
   console.log("Current Pool balance is " + tx)
 
   txCode = await getTemplate("./transactions/stakingCollection/process_staking.cdc",
@@ -291,6 +312,8 @@ const main = async () => {
   txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
   {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
   [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
+  expect(Number.parseFloat(tx[0].tokensCommitted)).toBeCloseTo(0.0, 1);
+  expect(Number.parseFloat(tx[0].tokensStaked)).toBeCloseTo(Number.parseFloat(tokensCommitted), 1);
   console.log("Current Delegating Info is", { tx });
   txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
   {});
@@ -307,9 +330,17 @@ const main = async () => {
   [tx, error] = await sendTransaction({code: txCode, signers: [sFlowTokenAddress], args: []});
   console.log("Epoch gave reward");
 
+  txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
+  {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
+  [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
+  let tokensRewarded = tx[0].tokensRewarded;
+  console.log("Current Delegating Info is", { tx });
+
   txCode = await getTemplate("./transactions/stakingManager/scripts/get_current_price.cdc",
   {sFlowStakingManager: sFlowStakingManagerAddress});
   [tx, error] = await executeScript({code: txCode, args: []});
+  let tokenPrice = tx;
+  expect(Number.parseFloat(tx)).toBeCloseTo((Number.parseFloat(tokensCommitted) + Number.parseFloat(tokensInPool) + Number.parseFloat(tokensRewarded)) / (1000.0 + 100.0 + 100.0), 1);
   console.log("Current sFlow Price is", { tx });
 
   txCode = await getTemplate("./transactions/stakingManager/unstake.cdc",
@@ -320,16 +351,19 @@ const main = async () => {
   txCode = await getTemplate("./transactions/stakingManager/scripts/get_requested_unstake_amount.cdc",
   {});
   [tx, error] = await executeScript({code: txCode, args: [user1Address]});
+  expect(Number.parseFloat(tx)).toBeCloseTo(30.0, 1);
   console.log("user1's current requested unstake amount is " + tx)
 
   txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
   {});
   [tx, error] = await executeScript({code: txCode, args: [user1Address]});
+  expect(Number.parseFloat(tx)).toBeCloseTo(1000.0 - 100.0 - 100.0 , 1);
   console.log("user1's Flow balance is " + tx)
 
   txCode = await getTemplate("./transactions/sFlowToken/scripts/get_sFlow_balance.cdc",
   {sFlowToken: sFlowTokenAddress});
   [tx, error] = await executeScript({code: txCode, args: [user1Address]});
+  expect(Number.parseFloat(tx)).toBeCloseTo(100.0 + 100.0 - 30.0, 1);
   console.log("user1's sFlow balance is " + tx)
 
   txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
@@ -355,11 +389,13 @@ const main = async () => {
   txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
   {});
   [tx, error] = await executeScript({code: txCode, args: [user2Address]});
+  expect(Number.parseFloat(tx)).toBeCloseTo(1000.0 - 70.0 , 1);
   console.log("user2's Flow balance is " + tx)
 
   txCode = await getTemplate("./transactions/sFlowToken/scripts/get_sFlow_balance.cdc",
   {sFlowToken: sFlowTokenAddress});
   [tx, error] = await executeScript({code: txCode, args: [user2Address]});
+  expect(Number.parseFloat(tx)).toBeCloseTo(70.0/tokenPrice, 1);
   console.log("user2's sFlow balance is " + tx)
 
   txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
@@ -384,6 +420,7 @@ const main = async () => {
   txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
   {});
   [tx, error] = await executeScript({code: txCode, args: [user1Address]});
+  expect(Number.parseFloat(tx)).toBeCloseTo(800.0 + 30.0 * tokenPrice , 1);
   console.log("user1's Flow balance is " + tx)
 
   txCode = await getTemplate("./transactions/sFlowToken/scripts/get_sFlow_balance.cdc",
@@ -394,6 +431,7 @@ const main = async () => {
   txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
   {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
   [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
+  expect(Number.parseFloat(tx[0].tokensCommitted)).toBeCloseTo(100.0 + 70.0 + 1089.9 / 10.0 - 30.0 * tokenPrice  , 1);
   console.log("Current Delegating Info is", { tx });
   txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
   {});
@@ -430,11 +468,13 @@ const main = async () => {
   txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
   {});
   [tx, error] = await executeScript({code: txCode, args: [user1Address]});
+  expect(Number.parseFloat(tx)).toBeCloseTo(832.7 - 100.0, 1);
   console.log("user1's Flow balance is " + tx)
 
   txCode = await getTemplate("./transactions/sFlowToken/scripts/get_sFlow_balance.cdc",
   {sFlowToken: sFlowTokenAddress});
   [tx, error] = await executeScript({code: txCode, args: [user1Address]});
+  expect(Number.parseFloat(tx)).toBeCloseTo(170.0 + 100.0/tokenPrice, 1);
   console.log("user1's sFlow balance is " + tx)
 
   txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
@@ -539,6 +579,11 @@ const main = async () => {
   txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
   {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
   [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
+  expect(Number.parseFloat(tx[0].tokensCommitted)).toBeCloseTo(0.0, 1);
+  expect(Number.parseFloat(tx[0].tokensStaked)).toBeCloseTo(0.0, 1);
+  expect(Number.parseFloat(tx[0].tokensUnstaking)).toBeCloseTo(0.0, 1);
+  expect(Number.parseFloat(tx[0].tokensRewarded)).toBeCloseTo(0.0, 1);
+  expect(Number.parseFloat(tx[0].tokensUnstaked)).toBeCloseTo(0.0, 1);
   console.log("Current Delegating Info is", { tx });
   txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
   {});
