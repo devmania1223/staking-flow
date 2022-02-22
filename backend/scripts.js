@@ -54,7 +54,7 @@ export const getAllDelegatorInfo = async (address) => {
 export const accountInitialzed = async (address) => {
     var response = await fcl.query({
         cadence : `
-        import sFlowToken3 from 0xsFlowToken3
+        import sFlowToken4 from 0xsFlowToken4
         import FungibleToken from 0xFungibleToken
 
         // This script reads the Vault balances of two accounts.
@@ -63,7 +63,7 @@ export const accountInitialzed = async (address) => {
             let account = getAccount(accountAddress)
 
             let accountRef = account
-            .getCapability(/public/sFlowToken3Receiver)
+            .getCapability(/public/sFlowToken4Receiver)
             .borrow<&{FungibleToken.Receiver}>()
 
             if accountRef == nil {
@@ -79,11 +79,11 @@ export const accountInitialzed = async (address) => {
 export const getCurrentPrice = async () => {
     var response = await fcl.query({
         cadence : `
-        import sFlowStakingManager17 from 0xsFlowStakingManager17
+        import sFlowStakingManager18 from 0xsFlowStakingManager18
 
         // This script reads the Vault balances of two accounts.
         pub fun main() : UFix64 {
-            let price = sFlowStakingManager17.getCurrentPrice()
+            let price = sFlowStakingManager18.getCurrentPrice()
             return price
         }
         `
@@ -120,13 +120,13 @@ export const getsFlowBalance = async (address) => {
         // This script reads the balance field of an account's FlowToken Balance
 
         import FungibleToken from 0xFungibleToken
-        import sFlowToken3 from 0xsFlowToken3
+        import sFlowToken4 from 0xsFlowToken4
         
         pub fun main(account: Address): UFix64 {
         
             let vaultRef = getAccount(account)
-                .getCapability(/public/sFlowToken3Balance)
-                .borrow<&sFlowToken3.Vault{FungibleToken.Balance}>()
+                .getCapability(/public/sFlowToken4Balance)
+                .borrow<&sFlowToken4.Vault{FungibleToken.Balance}>()
                 ?? panic("Could not borrow Balance reference to the Vault")
         
             return vaultRef.balance
