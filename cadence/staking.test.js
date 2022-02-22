@@ -47,12 +47,16 @@ describe("Testing Staking Manager", () => {
     txCode,
     tokensCommitted,
     tokensInPool,
+    tokensStaked,
     tokensRewarded,
-    tokenPrice
+    tokenPrice = 1.0,
     user1FlowBalance = 0.0,
     user1sFlowBalance = 0.0,
     user2FlowBalance = 0.0,
-    user2sFlowBalance = 0.0;
+    user2sFlowBalance = 0.0,
+    user1RequestedAmount = 0.0,
+    poolMinimumLimit = 10.1,
+    totalSupply = 0.0;
 
   beforeAll(async () => {
     await init(basePath, { port });
@@ -168,6 +172,7 @@ describe("Testing Staking Manager", () => {
     sFlowTokenAddress = await getAccountAddress("sFlowToken");
     await mintFlow(sFlowTokenAddress, "1000.0");
     tokensInPool = 1000.0
+    totalSupply = 1000.0
 
     txCode = await getTemplate("./transactions/stakingCollection/setup_staking_collection.cdc",
       {FlowIDTableStaking: FlowIDTableStakingAddress, LockedTokens: LockedTokensAddress, FlowStakingCollection: FlowStakingCollectionAddress});
@@ -249,7 +254,7 @@ describe("Testing Staking Manager", () => {
     }
   });
 
-  test("Checking Delegation State", async () => {
+  test("Checking Delegation Info", async () => {
     txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
@@ -259,7 +264,7 @@ describe("Testing Staking Manager", () => {
     {});
     [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
     expect(error).toBe(null);
-    expect(tx).toBeCloseTo(tokensInPool, 1);
+    expect(Number.parseFloat(tx)).toBeCloseTo(tokensInPool, 1);
   });
 
   test("Staring Staking Auction", async () => {
@@ -274,378 +279,347 @@ describe("Testing Staking Manager", () => {
     {sFlowToken: sFlowTokenAddress, sFlowStakingManager: sFlowStakingManagerAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [user1Address], args: [100.0]});
     expect(error).toBe(null);
+    user1FlowBalance = 1000.0 - 100.0;
+    user1sFlowBalance = 100.0/tokenPrice;
+    tokensInPool += 100.0;
+    totalSupply += 100.0;
 
     txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [user1Address]});
-    expect(Number.parseFloat(tx)).toBeCloseTo(1000.0 - 100.0, 1);
-    console.log("user1's Flow balance is " + tx)
+    expect(Number.parseFloat(tx)).toBeCloseTo(user1FlowBalance, 1);
 
     txCode = await getTemplate("./transactions/sFlowToken/scripts/get_sFlow_balance.cdc",
     {sFlowToken: sFlowTokenAddress});
     [tx, error] = await executeScript({code: txCode, args: [user1Address]});
-    expect(Number.parseFloat(tx)).toBeCloseTo(100.0, 1);
-    console.log("user1's sFlow balance is " + tx)
+    expect(Number.parseFloat(tx)).toBeCloseTo(user1sFlowBalance, 1);
+  });
 
+  test("Checking Delegation Info", async () => {
     txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
-    console.log("Current Delegating Info is", { tx });
+    expect(Number.parseFloat(tx[0].tokensCommitted)).toBeCloseTo(tokensCommitted, 1);
+
     txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
-    expect(Number.parseFloat(tx)).toBeCloseTo(100.0 + 500.0, 1);
-    console.log("Current Pool balance is " + tx)
+    expect(Number.parseFloat(tx)).toBeCloseTo(tokensInPool, 1);
+  });
 
+  test("User2 stake 100 Flow to Platform and failed cause it has no Flow Balance", async () => {
     txCode = await getTemplate("./transactions/stakingManager/stake.cdc",
     {sFlowToken: sFlowTokenAddress, sFlowStakingManager: sFlowStakingManagerAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [user2Address], args: [100.0]});
-    console.log("user2 staking 100 Flow to the platform and failed cause there is no Flow with this error", {error})
+    expect(tx).toBe(null);
+  });
 
-    txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
-    {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
-    [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
-    console.log("Current Delegating Info is", { tx });
-    txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
-    {});
-    [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
-    console.log("Current Pool balance is " + tx)
-
+  test("Manager manage Collection", async () => {
     txCode = await getTemplate("./transactions/stakingManager/manage_collection.cdc",
     {sFlowStakingManager: sFlowStakingManagerAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [managerAddress], args: []});
-    console.log("manager managed collection");
+    tokensCommitted += tokensInPool - poolMinimumLimit;
+    tokensInPool = poolMinimumLimit;
 
     txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
-    expect(Number.parseFloat(tx[0].tokensCommitted)).toBeCloseTo(500.0 + 600.0 - 10.1, 1);
-    console.log("Current Delegating Info is", { tx });
+    expect(Number.parseFloat(tx[0].tokensCommitted)).toBeCloseTo(tokensCommitted, 1);
     txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
-    expect(Number.parseFloat(tx)).toBeCloseTo(10.1, 1);
-    console.log("Current Pool balance is " + tx)
+    expect(Number.parseFloat(tx)).toBeCloseTo(tokensInPool, 1);
+  });
 
+  test("End Staking", async () => {
     txCode = await getTemplate("./transactions/idTableStaking/admin/end_staking.cdc",
     {FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [FlowIDTableStakingAddress], args: []});
-    console.log("Staking Auction Ended");
+    expect(error).toBe(null);
+  });
 
+  test("User1 stake 100 Flow to Staking Platform", async () => {
     txCode = await getTemplate("./transactions/stakingManager/stake.cdc",
     {sFlowToken: sFlowTokenAddress, sFlowStakingManager: sFlowStakingManagerAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [user1Address], args: [100.0]});
-    console.log("user1 staked 100 Flow to the platform")
+    user1FlowBalance -= 100.0;
+    user1sFlowBalance += 100.0 / tokenPrice;
+    tokensInPool += 100.0;
+    totalSupply += 100.0;
 
     txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [user1Address]});
-    expect(Number.parseFloat(tx)).toBeCloseTo(900.0 - 100.0, 1);
-    console.log("user1's Flow balance is " + tx)
-
+    expect(Number.parseFloat(tx)).toBeCloseTo(user1FlowBalance, 1);
     txCode = await getTemplate("./transactions/sFlowToken/scripts/get_sFlow_balance.cdc",
     {sFlowToken: sFlowTokenAddress});
     [tx, error] = await executeScript({code: txCode, args: [user1Address]});
-    expect(Number.parseFloat(tx)).toBeCloseTo(100.0 + 100.0, 1);
-    console.log("user1's sFlow balance is " + tx)
+    expect(Number.parseFloat(tx)).toBeCloseTo(user1sFlowBalance, 1);
 
     txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
-    console.log("Current Delegating Info is", { tx });
+    expect(Number.parseFloat(tx[0].tokensCommitted)).toBeCloseTo(tokensCommitted, 1);
     txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
-    expect(Number.parseFloat(tx)).toBeCloseTo(10.1 + 100.0, 1);
-    console.log("Current Pool balance is " + tx)
+    expect(Number.parseFloat(tx)).toBeCloseTo(tokensInPool, 1);
+  });
 
+  test("Manager manage Collection but no change in Delegation Info cause it is out of auction period", async () => {
     txCode = await getTemplate("./transactions/stakingManager/manage_collection.cdc",
     {sFlowStakingManager: sFlowStakingManagerAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [managerAddress], args: []});
-    console.log("manager managed collection");
 
     txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
-    tokensCommitted = tx[0].tokensCommitted;
-    console.log("Current Delegating Info is", { tx });
+    expect(Number.parseFloat(tx[0].tokensCommitted)).toBeCloseTo(tokensCommitted, 1);
     txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
-    tokensInPool = tx;
-    console.log("Current Pool balance is " + tx)
+    expect(Number.parseFloat(tx)).toBeCloseTo(tokensInPool, 1);
+  });
 
+  test("Epoch process staking request", async () => {
     txCode = await getTemplate("./transactions/stakingCollection/process_staking.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [sFlowTokenAddress], args: []});
-    console.log("Epoch updated delegation info");
+    tokensStaked = tokensCommitted;
+    tokensCommitted = 0.0;
 
     txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
-    expect(Number.parseFloat(tx[0].tokensCommitted)).toBeCloseTo(0.0, 1);
-    expect(Number.parseFloat(tx[0].tokensStaked)).toBeCloseTo(Number.parseFloat(tokensCommitted), 1);
-    console.log("Current Delegating Info is", { tx });
-    txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
-    {});
-    [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
-    console.log("Current Pool balance is " + tx)
+    expect(Number.parseFloat(tx[0].tokensCommitted)).toBeCloseTo(tokensCommitted, 1);
+    expect(Number.parseFloat(tx[0].tokensStaked)).toBeCloseTo(Number.parseFloat(tokensStaked), 1);
+  });
 
+  test("Check current price is 1.0", async () => {
     txCode = await getTemplate("./transactions/stakingManager/scripts/get_current_price.cdc",
     {sFlowStakingManager: sFlowStakingManagerAddress});
     [tx, error] = await executeScript({code: txCode, args: []});
-    console.log("Current sFlow Price is", { tx });
+    expect(Number.parseFloat(tx)).toBeCloseTo(tokenPrice, 1);
+  });
 
+  test("Epoch Gives Rewards", async () => {
     txCode = await getTemplate("./transactions/stakingCollection/give_reward.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [sFlowTokenAddress], args: []});
-    console.log("Epoch gave reward");
-
+    expect(error).toBe(null);
+    tokensRewarded = tokensStaked/10.0;
+    tokenPrice = (tokensCommitted + tokensStaked + tokensInPool + tokensRewarded) / totalSupply;
     txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
-    tokensRewarded = tx[0].tokensRewarded;
-    console.log("Current Delegating Info is", { tx });
+    expect(Number.parseFloat(tx[0].tokensRewarded)).toBeCloseTo(tokensRewarded, 1);
+  });
 
+  test("Check current price is changed", async () => {
     txCode = await getTemplate("./transactions/stakingManager/scripts/get_current_price.cdc",
     {sFlowStakingManager: sFlowStakingManagerAddress});
     [tx, error] = await executeScript({code: txCode, args: []});
-    tokenPrice = tx;
-    expect(Number.parseFloat(tx)).toBeCloseTo((Number.parseFloat(tokensCommitted) + Number.parseFloat(tokensInPool) + Number.parseFloat(tokensRewarded)) / (1000.0 + 100.0 + 100.0), 1);
-    console.log("Current sFlow Price is", { tx });
+    expect(Number.parseFloat(tx)).toBeCloseTo(tokenPrice, 1);
+  });
 
+  test("User1 request to unstake 30.0 sFlows", async () => {
     txCode = await getTemplate("./transactions/stakingManager/unstake.cdc",
     {sFlowToken: sFlowTokenAddress, sFlowStakingManager: sFlowStakingManagerAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [user1Address], args: [30.0]});
-    console.log("user1 request to unstake 30.0 sFlow to the platform")
+    user1RequestedAmount = 30.0;
+    user1sFlowBalance -= 30.0;
 
     txCode = await getTemplate("./transactions/stakingManager/scripts/get_requested_unstake_amount.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [user1Address]});
-    expect(Number.parseFloat(tx)).toBeCloseTo(30.0, 1);
-    console.log("user1's current requested unstake amount is " + tx)
-
+    expect(Number.parseFloat(tx)).toBeCloseTo(user1RequestedAmount, 1);
     txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [user1Address]});
-    expect(Number.parseFloat(tx)).toBeCloseTo(1000.0 - 100.0 - 100.0 , 1);
-    console.log("user1's Flow balance is " + tx)
-
+    expect(Number.parseFloat(tx)).toBeCloseTo(user1FlowBalance, 1);
     txCode = await getTemplate("./transactions/sFlowToken/scripts/get_sFlow_balance.cdc",
     {sFlowToken: sFlowTokenAddress});
     [tx, error] = await executeScript({code: txCode, args: [user1Address]});
-    expect(Number.parseFloat(tx)).toBeCloseTo(100.0 + 100.0 - 30.0, 1);
-    console.log("user1's sFlow balance is " + tx)
+    expect(Number.parseFloat(tx)).toBeCloseTo(user1sFlowBalance, 1);
+  });
 
-    txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
-    {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
-    [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
-    console.log("Current Delegating Info is", { tx });
-    txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
-    {});
-    [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
-    console.log("Current Pool balance is " + tx)
-
+  test("Restart staking", async () => {
     txCode = await getTemplate("./transactions/idTableStaking/admin/start_staking.cdc",
     {FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [FlowIDTableStakingAddress], args: []});
-    console.log("Staking Auction Started");
+    expect(error).toBe(null);
 
     await mintFlow(user2Address, "1000.0");
+    user2FlowBalance = 1000.0;
+  });
+
+  test("User2 stake 70.0 Flows", async () => {
     txCode = await getTemplate("./transactions/stakingManager/stake.cdc",
     {sFlowToken: sFlowTokenAddress, sFlowStakingManager: sFlowStakingManagerAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [user2Address], args: [70.0]});
-    console.log("user2 staked 70.0 Flow to the platform")
+    user2FlowBalance -= 70.0;
+    user2sFlowBalance = 70.0/tokenPrice;
+    tokensInPool += 70.0;
 
     txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [user2Address]});
-    expect(Number.parseFloat(tx)).toBeCloseTo(1000.0 - 70.0 , 1);
-    console.log("user2's Flow balance is " + tx)
-
+    expect(Number.parseFloat(tx)).toBeCloseTo(user2FlowBalance , 1);
     txCode = await getTemplate("./transactions/sFlowToken/scripts/get_sFlow_balance.cdc",
     {sFlowToken: sFlowTokenAddress});
     [tx, error] = await executeScript({code: txCode, args: [user2Address]});
-    expect(Number.parseFloat(tx)).toBeCloseTo(70.0/tokenPrice, 1);
-    console.log("user2's sFlow balance is " + tx)
+    expect(Number.parseFloat(tx)).toBeCloseTo(user2sFlowBalance, 1);
 
-    txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
-    {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
-    [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
-    console.log("Current Delegating Info is", { tx });
     txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
-    console.log("Current Pool balance is " + tx)
+    expect(Number.parseFloat(tx)).toBeCloseTo(tokensInPool, 1);
+  });
 
+  test("Manager manage Collection", async () => {
     txCode = await getTemplate("./transactions/stakingManager/manage_collection.cdc",
     {sFlowStakingManager: sFlowStakingManagerAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [managerAddress], args: []});
-    console.log("manager managed collection");
+    user1FlowBalance += user1RequestedAmount * tokenPrice;
+    tokensInPool = tokensInPool - user1RequestedAmount * tokenPrice;
+    tokensCommitted += tokensInPool - poolMinimumLimit + tokensRewarded;
+    tokensInPool = poolMinimumLimit;
+    totalSupply -= user1RequestedAmount;
+    tokensRewarded = 0.0;
+    user1RequestedAmount = 0.0;
 
     txCode = await getTemplate("./transactions/stakingManager/scripts/get_requested_unstake_amount.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [user1Address]});
-    console.log("user1's current requested unstake amount is " + tx)
-
-    txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
-    {});
-    [tx, error] = await executeScript({code: txCode, args: [user1Address]});
-    expect(Number.parseFloat(tx)).toBeCloseTo(800.0 + 30.0 * tokenPrice , 1);
-    console.log("user1's Flow balance is " + tx)
-
-    txCode = await getTemplate("./transactions/sFlowToken/scripts/get_sFlow_balance.cdc",
-    {sFlowToken: sFlowTokenAddress});
-    [tx, error] = await executeScript({code: txCode, args: [user1Address]});
-    console.log("user1's sFlow balance is " + tx)
-
+    expect(Number.parseFloat(tx)).toBeCloseTo(user1RequestedAmount, 1);
     txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
-    expect(Number.parseFloat(tx[0].tokensCommitted)).toBeCloseTo(100.0 + 70.0 + 1089.9 / 10.0 - 30.0 * tokenPrice  , 1);
-    console.log("Current Delegating Info is", { tx });
+    expect(Number.parseFloat(tx[0].tokensCommitted)).toBeCloseTo(tokensCommitted, 1);
+    expect(Number.parseFloat(tx[0].tokensStaked)).toBeCloseTo(tokensStaked, 1);
     txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
-    console.log("Current Pool balance is " + tx)
+    expect(Number.parseFloat(tx)).toBeCloseTo(tokensInPool, 1);
+  });
 
+  test("Register new delegator", async () => {
     txCode = await getTemplate("./transactions/stakingCollection/register_delegator.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [sFlowTokenAddress], args: ["Second_Node", 5.0]});
-    console.log("Delegation to " + "Second_Node" + " is Registered with " + 5.0 + "Flows" );
 
     txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
-    console.log("Current Delegating Info is", { tx });
-    txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
-    {});
+    expect(tx.length).toBe(2);
+  });
 
+  test("User1 attempt to change delegation node and failed", async () => {
     txCode = await getTemplate("./transactions/stakingManager/set_new_delegator.cdc",
     {sFlowStakingManager: sFlowStakingManagerAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [user1Address], args: ["Second_Node", 2]});
-    console.log("user1 attempt to change delegation node and failed with this error", {error});
+    expect(tx).toBe(null);
+  });
 
+  test("Manager attempt to change delegation node and succeed", async () => {
     txCode = await getTemplate("./transactions/stakingManager/set_new_delegator.cdc",
     {sFlowStakingManager: sFlowStakingManagerAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [managerAddress], args: ["Second_Node", 2]});
-    console.log("manager change delegation node");
+    expect(error).toBe(null);
+  });
 
+  test("Testing for delegation change", async () => {
     txCode = await getTemplate("./transactions/stakingManager/stake.cdc",
     {sFlowToken: sFlowTokenAddress, sFlowStakingManager: sFlowStakingManagerAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [user1Address], args: [100.0]});
-    console.log("user1 staked 100 Flow to the platform")
 
     txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [user1Address]});
     expect(Number.parseFloat(tx)).toBeCloseTo(832.7 - 100.0, 1);
-    console.log("user1's Flow balance is " + tx)
 
     txCode = await getTemplate("./transactions/sFlowToken/scripts/get_sFlow_balance.cdc",
     {sFlowToken: sFlowTokenAddress});
     [tx, error] = await executeScript({code: txCode, args: [user1Address]});
     expect(Number.parseFloat(tx)).toBeCloseTo(170.0 + 100.0/tokenPrice, 1);
-    console.log("user1's sFlow balance is " + tx)
 
     txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
-    console.log("Current Delegating Info is", { tx });
     txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
-    console.log("Current Pool balance is " + tx)
 
     txCode = await getTemplate("./transactions/stakingManager/manage_collection.cdc",
     {sFlowStakingManager: sFlowStakingManagerAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [managerAddress], args: []});
-    console.log("manager managed collection");
 
     txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
-    console.log("Current Delegating Info is", { tx });
     txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
-    console.log("Current Pool balance is " + tx)
 
     txCode = await getTemplate("./transactions/idTableStaking/admin/end_staking.cdc",
     {FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [FlowIDTableStakingAddress], args: []});
-    console.log("Staking Auction Ended");
 
     txCode = await getTemplate("./transactions/stakingCollection/process_staking.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [sFlowTokenAddress], args: []});
-    console.log("Epoch updated delegation info");
 
     txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
-    console.log("Current Delegating Info is", { tx });
     txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
-    console.log("Current Pool balance is " + tx)
 
     txCode = await getTemplate("./transactions/stakingCollection/process_staking.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [sFlowTokenAddress], args: []});
-    console.log("Epoch updated delegation info");
 
     txCode = await getTemplate("./transactions/stakingCollection/give_reward.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [sFlowTokenAddress], args: []});
-    console.log("Epoch gave reward");
 
     txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
-    console.log("Current Delegating Info is", { tx });
     txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
-    console.log("Current Pool balance is " + tx)
 
     txCode = await getTemplate("./transactions/idTableStaking/admin/start_staking.cdc",
     {FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [FlowIDTableStakingAddress], args: []});
-    console.log("Staking Auction Started");
 
     txCode = await getTemplate("./transactions/stakingManager/manage_collection.cdc",
     {sFlowStakingManager: sFlowStakingManagerAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [managerAddress], args: []});
-    console.log("manager managed collection");
 
     txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
-    console.log("Current Delegating Info is", { tx });
     txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
-    console.log("Current Pool balance is " + tx)
 
     txCode = await getTemplate("./transactions/stakingManager/manage_collection.cdc",
     {sFlowStakingManager: sFlowStakingManagerAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [managerAddress], args: []});
-    console.log("manager managed collection");
 
     txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
     [tx, error] = await executeScript({code: txCode, args: [sFlowTokenAddress]});
-    console.log("Current Delegating Info is", { tx });
     txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
-    console.log("Current Pool balance is " + tx)
 
     txCode = await getTemplate("./transactions/stakingManager/manage_collection.cdc",
     {sFlowStakingManager: sFlowStakingManagerAddress});
     [tx, error] = await sendTransaction({code: txCode, signers: [managerAddress], args: []});
-    console.log("manager managed collection");
 
     txCode = await getTemplate("./transactions/stakingCollection/scripts/get_all_delegator_info.cdc",
     {FlowStakingCollection: FlowStakingCollectionAddress, FlowIDTableStaking: FlowIDTableStakingAddress});
@@ -655,11 +629,9 @@ describe("Testing Staking Manager", () => {
     expect(Number.parseFloat(tx[0].tokensUnstaking)).toBeCloseTo(0.0, 1);
     expect(Number.parseFloat(tx[0].tokensRewarded)).toBeCloseTo(0.0, 1);
     expect(Number.parseFloat(tx[0].tokensUnstaked)).toBeCloseTo(0.0, 1);
-    console.log("Current Delegating Info is", { tx });
     txCode = await getTemplate("./transactions/flowToken/scripts/get_balance.cdc",
     {});
     [tx, error] = await executeScript({code: txCode, args: [sFlowStakingManagerAddress]});
-    console.log("Current Pool balance is " + tx)
   });
 
   afterAll(async () => {
