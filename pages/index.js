@@ -30,7 +30,7 @@ import * as transactions from "./api/transactions.js"
 const theme = createTheme({
   palette: {
     primary:{
-      main: '#d0d0d0',
+      main: '#f4f6f8',
     }
   },
   typography: {
@@ -87,26 +87,26 @@ export default function Home() {
   
   const footers = [
     {
-      title: 'Company',
-      description: ['Team', 'History', 'Contact us', 'Locations'],
+      title: 'EmuDao',
+      description: [],
     },
     {
-      title: 'Features',
+      title: 'Resources',
       description: [
-        'Cool stuff',
-        'Random feature',
-        'Team feature',
-        'Developer stuff',
+        'Stake with Emu',
+        'Terms of Use',
+        'Privacy Policy',
+        'FAQ',
         'Another one',
       ],
     },
     {
-      title: 'Resources',
-      description: ['Resource', 'Resource name', 'Another resource', 'Final resource'],
+      title: 'Community',
+      description: ['Discord', 'Twitter', 'Telegram', 'GitHub'],
     },
     {
-      title: 'Legal',
-      description: ['Privacy policy', 'Terms of use'],
+      title: 'Contacts',
+      description: ['info@emu.fi', 'Help Center'],
     },
   ];
 
@@ -158,7 +158,7 @@ export default function Home() {
             <Container>
               <Toolbar>
                 <Typography variant="h6" component="div" sx={{ flexGrow: 1 }} style={{fontWeight: 900, textTransform: "uppercase"}}>
-                  Flow Staking
+                  EmuDao
                 </Typography>
                 {user.loggedIn
                 ? <AuthedState />
@@ -263,7 +263,7 @@ export default function Home() {
 
         <footer>
           <Container
-            maxWidth="md"
+            maxWidth="lg"
             component="footer"
             sx={{
               borderTop: (theme) => `1px solid ${theme.palette.divider}`,
@@ -274,13 +274,14 @@ export default function Home() {
             <Grid container spacing={4} justifyContent="space-evenly">
               {footers.map((footer) => (
                 <Grid item xs={6} sm={3} key={footer.title}>
-                  <Typography variant="h6" color="text.primary" gutterBottom>
+                  <Typography  style={{fontSize: "16px", fontWeight: 600}} variant="h6" color="text.primary" gutterBottom>
                     {footer.title}
                   </Typography>
-                  <ul>
+                  <ul style={{listStyleType: "none",
+                    paddingInlineStart: 0}}>
                     {footer.description.map((item) => (
-                      <li key={item}>
-                        <Link href="#" variant="subtitle1" color="text.secondary">
+                      <li key={item} style={{marginBottom: "1em"}}>
+                        <Link href="#" variant="subtitle1" color="text.secondary" style={{textDecoration: "none", fontSize: "16px"}}>
                           {item}
                         </Link>
                       </li>
@@ -289,7 +290,6 @@ export default function Home() {
                 </Grid>
               ))}
             </Grid>
-            <Copyright sx={{ mt: 5 }} />
           </Container>
         </footer>
       </ThemeProvider>
