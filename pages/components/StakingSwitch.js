@@ -48,7 +48,7 @@ const SwitchThumb = styled('span')`
 
 const SwitchTrack = styled('span')(
   ({ theme }) => `
-  background-color: #BFC7CF;
+  background-color: #e2e6eb;
   border-radius: 30px;
   width: 100%;
   height: 100%;
