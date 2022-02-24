@@ -157,6 +157,7 @@ export default function Home() {
           <AppBar position="static">
             <Container>
               <Toolbar>
+                <img src='./emu.png' style={{width: "2em", height: "2em"}}/>
                 <Typography variant="h6" component="div" sx={{ flexGrow: 1 }} style={{fontWeight: 900, textTransform: "uppercase"}}>
                   EmuDao
                 </Typography>
@@ -275,6 +276,9 @@ export default function Home() {
               {footers.map((footer) => (
                 <Grid item xs={6} sm={3} key={footer.title}>
                   <Typography  style={{fontSize: "16px", fontWeight: 600}} variant="h6" color="text.primary" gutterBottom>
+                    {footer.title == "EmuDao" ? 
+                      <img src='./emu.png' style={{width: "1.5em", height: "1.5em"}}/>
+                    : ""}
                     {footer.title}
                   </Typography>
                   <ul style={{listStyleType: "none",
