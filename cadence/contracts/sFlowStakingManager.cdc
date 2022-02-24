@@ -124,6 +124,8 @@ pub contract sFlowStakingManager {
         pub fun setCapability(cap: Capability<&Manager>)
         pub fun setNewDelegator(nodeID: String, delegatorID: UInt32)
         pub fun setMinimumPoolTaking(amount: UFix64)
+        pub fun registerNewDelegator(id: String, amount: UFix64)
+        pub fun unstakeAll(nodeId: String, delegatorId: UInt32)
     }
 
     pub resource Instance : InstanceInterface {
@@ -161,6 +163,26 @@ pub contract sFlowStakingManager {
 
             managerRef.setMinimumPoolTaking(amount: amount)
         }
+
+        pub fun registerNewDelegator(id: String, amount: UFix64){
+            pre {
+                self.managerCapability != nil: 
+                    "Cannot manage staking until the manger capability not set"
+            }
+            
+            let managerRef = self.managerCapability!.borrow()!
+            managerRef.registerNewDelegator(id: id, amount: amount)
+        }
+
+        pub fun unstakeAll(nodeId: String, delegatorId: UInt32){
+            pre {
+                self.managerCapability != nil: 
+                    "Cannot manage staking until the manger capability not set"
+            }
+            
+            let managerRef = self.managerCapability!.borrow()!
+            managerRef.unstakeAll(id: nodeId, delegatorId: delegatorId)
+        }
     }
 
     pub resource Manager {
@@ -181,6 +203,34 @@ pub contract sFlowStakingManager {
 
         pub fun setMinimumPoolTaking(amount: UFix64){
             sFlowStakingManager.minimumPoolTaking = amount
+        }
+
+        pub fun registerNewDelegator(id: String, amount: UFix64){
+            let stakingCollectionRef: &FlowStakingCollection.StakingCollection = sFlowStakingManager.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
+                ?? panic("Could not borrow ref to StakingCollection")
+            stakingCollectionRef.registerDelegator(nodeID: id, amount: amount)
+        }
+
+        pub fun unstakeAll(nodeId: String, delegatorId: UInt32){
+            let delegatingInfo = FlowStakingCollection.getAllDelegatorInfo(address: sFlowStakingManager.account.address);
+            if delegatingInfo.length == 0 {
+                panic("No Delegating Information")
+            }
+            for info in delegatingInfo {
+                if (info.nodeID == nodeId && info.id == delegatorId){
+                    let stakingCollectionRef: &FlowStakingCollection.StakingCollection = sFlowStakingManager.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
+                        ?? panic("Could not borrow ref to StakingCollection")
+                    if(info.tokensCommitted > 0.0 || info.tokensStaked > 0.0){
+                        stakingCollectionRef.requestUnstaking(nodeID: nodeId, delegatorID: delegatorId, amount: info.tokensCommitted + info.tokensStaked)
+                    }
+                    if(info.tokensRewarded > 0.0){
+                        stakingCollectionRef.withdrawRewardedTokens(nodeID: nodeId, delegatorID: delegatorId, amount: info.tokensRewarded)
+                    }
+                    if(info.tokensUnstaked > 0.0){
+                        stakingCollectionRef.withdrawUnstakedTokens(nodeID: nodeId, delegatorID: delegatorId, amount: info.tokensUnstaked)
+                    }
+                }
+            }
         }
     }
 
