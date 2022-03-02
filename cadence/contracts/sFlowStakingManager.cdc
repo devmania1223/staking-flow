@@ -9,6 +9,7 @@ pub contract sFlowStakingManager {
     /// Unstaking Request List
     access(contract) var unstakeList: [{String: AnyStruct}]
     access(contract) var minimumPoolTaking: UFix64
+    access(contract) var transactionFeeGuarantee: UFix64
     access(contract) var nodeID: String
     access(contract) var delegatorID: UInt32
     access(contract) var prevNodeID: String
@@ -124,6 +125,7 @@ pub contract sFlowStakingManager {
         pub fun setCapability(cap: Capability<&Manager>)
         pub fun setNewDelegator(nodeID: String, delegatorID: UInt32)
         pub fun setMinimumPoolTaking(amount: UFix64)
+        pub fun setTransactionFeeGuarantee(amount: UFix64)
         pub fun registerNewDelegator(id: String, amount: UFix64)
         pub fun unstakeAll(nodeId: String, delegatorId: UInt32)
     }
@@ -162,6 +164,17 @@ pub contract sFlowStakingManager {
             let managerRef = self.managerCapability!.borrow()!
 
             managerRef.setMinimumPoolTaking(amount: amount)
+        }
+
+        pub fun setTransactionFeeGuarantee(amount: UFix64){
+            pre {
+                self.managerCapability != nil: 
+                    "Cannot manage staking until the manger capability not set"
+            }
+            
+            let managerRef = self.managerCapability!.borrow()!
+
+            managerRef.setTransactionFeeGuarantee(amount: amount)
         }
 
         pub fun registerNewDelegator(id: String, amount: UFix64){
@@ -203,6 +216,10 @@ pub contract sFlowStakingManager {
 
         pub fun setMinimumPoolTaking(amount: UFix64){
             sFlowStakingManager.minimumPoolTaking = amount
+        }
+
+        pub fun setTransactionFeeGuarantee(amount: UFix64){
+            sFlowStakingManager.transactionFeeGuarantee = amount
         }
 
         pub fun registerNewDelegator(id: String, amount: UFix64){
@@ -283,7 +300,7 @@ pub contract sFlowStakingManager {
         var bStakeNew : Bool = true
 
         if( requiredStakedAmount > 0.0 ){
-            requiredStakedAmount = requiredStakedAmount + sFlowStakingManager.minimumPoolTaking + 0.1 - sFlowStakingManager.getCurrentPoolAmount()
+            requiredStakedAmount = requiredStakedAmount + sFlowStakingManager.minimumPoolTaking + sFlowStakingManager.transactionFeeGuarantee - sFlowStakingManager.getCurrentPoolAmount()
             let delegatingInfo = sFlowStakingManager.getDelegatorInfo()
             if( delegatingInfo.tokensUnstaked > 0.0 ) {
                 let stakingCollectionRef: &FlowStakingCollection.StakingCollection = sFlowStakingManager.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
@@ -356,8 +373,8 @@ pub contract sFlowStakingManager {
             stakingCollectionRef.stakeUnstakedTokens(nodeID: sFlowStakingManager.nodeID, delegatorID: sFlowStakingManager.delegatorID, amount: delegatingInfo.tokensUnstaked)
             stakingCollectionRef.stakeRewardedTokens(nodeID: sFlowStakingManager.nodeID, delegatorID: sFlowStakingManager.delegatorID, amount: delegatingInfo.tokensRewarded)
 
-            if(sFlowStakingManager.getCurrentPoolAmount() > sFlowStakingManager.minimumPoolTaking + 0.1){
-                stakingCollectionRef.stakeNewTokens(nodeID: sFlowStakingManager.nodeID, delegatorID: sFlowStakingManager.delegatorID, amount: (sFlowStakingManager.getCurrentPoolAmount() - sFlowStakingManager.minimumPoolTaking - 0.1))
+            if(sFlowStakingManager.getCurrentPoolAmount() > sFlowStakingManager.minimumPoolTaking + sFlowStakingManager.transactionFeeGuarantee){
+                stakingCollectionRef.stakeNewTokens(nodeID: sFlowStakingManager.nodeID, delegatorID: sFlowStakingManager.delegatorID, amount: (sFlowStakingManager.getCurrentPoolAmount() - sFlowStakingManager.minimumPoolTaking - sFlowStakingManager.transactionFeeGuarantee))
             }
         }
 
@@ -397,6 +414,7 @@ pub contract sFlowStakingManager {
         ) ?? panic("Could not get a capability to the manager")
 
         self.minimumPoolTaking = 10.0
+        self.transactionFeeGuarantee = 0.1
         self.nodeID = nodeID
         self.delegatorID = delegatorID
         self.prevNodeID = ""
