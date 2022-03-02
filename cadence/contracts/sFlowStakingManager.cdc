@@ -254,6 +254,9 @@ pub contract sFlowStakingManager {
     pub fun manageCollection(){
         var requiredStakedAmount:UFix64 = 0.0
         var index = 0
+
+        //Checking Requested Unstaking List and if pool has enough amount of Flow, it pay back to user and burn sFlow.
+        //If not have enough Flow it calculates required Flow amount from those values in unstakeList.
         for unstakeTicket in sFlowStakingManager.unstakeList {
             let tempAddress : AnyStruct = unstakeTicket["address"]!
             let accountAddress : Address = tempAddress as! Address
@@ -262,6 +265,8 @@ pub contract sFlowStakingManager {
             let amount : UFix64 = tempAmount as! UFix64
 
             let requiredFlow = amount * sFlowStakingManager.getCurrentPrice();
+
+            //If has enough flow in pool pays back to user for unstaking
             if (sFlowStakingManager.getCurrentPoolAmount() > requiredFlow + sFlowStakingManager.minimumPoolTaking)
             {
                 let providerRef =  sFlowStakingManager.account
@@ -293,12 +298,15 @@ pub contract sFlowStakingManager {
                 sFlowStakingManager.unstakeList.remove(at: index)
                 continue
             }
+
+            //if not have enough flow add amount to required amount.
             requiredStakedAmount = requiredStakedAmount + requiredFlow
             index = index + 1
         }
 
         var bStakeNew : Bool = true
 
+        //If platform did not pay back all unstaking request, it request StakingCollection to withdraw unstaked tokens and recalc required amount
         if( requiredStakedAmount > 0.0 ){
             requiredStakedAmount = requiredStakedAmount + sFlowStakingManager.minimumPoolTaking + sFlowStakingManager.transactionFeeGuarantee - sFlowStakingManager.getCurrentPoolAmount()
             let delegatingInfo = sFlowStakingManager.getDelegatorInfo()
@@ -318,6 +326,7 @@ pub contract sFlowStakingManager {
             }
         }
 
+        //If platform did not pay back all unstaking request, it request StakingCollection to withdraw rewarded tokens and recalc required amount
         if( requiredStakedAmount > 0.0 ){
             let delegatingInfo = sFlowStakingManager.getDelegatorInfo()
             if( delegatingInfo.tokensRewarded > 0.0 ) {
@@ -336,6 +345,7 @@ pub contract sFlowStakingManager {
             }
         }
 
+        //If platform did not pay back all unstaking request, it request StakingCollection to unstake required amount of committed tokens and recalc required amount
         if( requiredStakedAmount > 0.0 ){
             let delegatingInfo = sFlowStakingManager.getDelegatorInfo()
             if( delegatingInfo.tokensCommitted > 0.0 ) {
@@ -354,6 +364,7 @@ pub contract sFlowStakingManager {
             }
         }
 
+        //If platform did not pay back all unstaking request, it request StakingCollection to unstake required amounf of staked tokens and recalc required amount
         if( requiredStakedAmount > 0.0 ){
             let delegatingInfo = sFlowStakingManager.getDelegatorInfo()
             if(delegatingInfo.tokensUnstaking + delegatingInfo.tokensRequestedToUnstake < requiredStakedAmount){
@@ -366,6 +377,7 @@ pub contract sFlowStakingManager {
             }
         }
 
+        //If platform payback all required amount, it request to restake unstaked tokens and rewarded tokens and remain tokens in Pool.
         if( requiredStakedAmount < 0.1 && bStakeNew && FlowIDTableStaking.stakingEnabled() ){
             let delegatingInfo = sFlowStakingManager.getDelegatorInfo()
             let stakingCollectionRef: &FlowStakingCollection.StakingCollection = sFlowStakingManager.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
@@ -378,6 +390,7 @@ pub contract sFlowStakingManager {
             }
         }
 
+        //If there is staked tokens for previous delegation node, it request to unstake all from that delegator to pool
         if(sFlowStakingManager.prevNodeID != ""  && FlowIDTableStaking.stakingEnabled()) {
             let delegatingInfo = sFlowStakingManager.getPrevDelegatorInfo()
             let stakingCollectionRef: &FlowStakingCollection.StakingCollection = sFlowStakingManager.account.borrow<&FlowStakingCollection.StakingCollection>(from: FlowStakingCollection.StakingCollectionStoragePath)
