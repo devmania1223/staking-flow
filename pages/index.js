@@ -167,11 +167,12 @@ export default function Home() {
     fcl.currentUser.subscribe(setUser);
   }, []);
 
-  useEffect(async () => {
+  useEffect(() => {
     if (user && user.loggedIn) {
-      let inited = await scripts.accountInitialzed(user.addr);
-      console.log(inited);
-      if (!inited) await transactions.initAccount(fcl.authz);
+      scripts.accountInitialzed(user.addr).then((inited) => {
+        if (!inited) 
+          transactions.initAccount(fcl.authz);
+      });
     }
   }, [user]);
 
@@ -187,7 +188,7 @@ export default function Home() {
         <AppBar position="static" className="app-bar">
           <Container>
             <Toolbar>
-              <img src="./emu.png" style={{ width: "2em", height: "2em" }} />
+              <Image src="./emu.png" width="2em" height="2em" alt="logo"/>
               <Typography
                 variant="h6"
                 component="div"
